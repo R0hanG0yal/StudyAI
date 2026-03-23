@@ -1438,9 +1438,6 @@
 
 <body>
 
-  <!-- Custom cursor -->
-  <div id="cur"></div>
-  <div id="cur-ring"></div>
 
   <!-- Fixed Top Header -->
   <div class="top-header">
@@ -1871,63 +1868,6 @@
       }
       animate();
     })();
-
-    /* ════════════════════════════════════════════════════════════
-       CUSTOM CURSOR
-       ════════════════════════════════════════════════════════════ */
-    const curEl = document.getElementById('cur');
-    const ringEl = document.getElementById('cur-ring');
-    let mX = 0, mY = 0, rX = 0, rY = 0;
-
-    document.addEventListener('mousemove', e => { mX = e.clientX; mY = e.clientY; });
-    document.addEventListener('mouseleave', () => { if (curEl) curEl.style.opacity = '0'; if (ringEl) ringEl.style.opacity = '0'; });
-    document.addEventListener('mouseenter', () => { if (curEl) curEl.style.opacity = '.9'; if (ringEl) ringEl.style.opacity = '.7'; });
-
-    function animCursor() {
-      rX += (mX - rX) * 0.28; rY += (mY - rY) * 0.28;
-      if (curEl) { curEl.style.left = mX + 'px'; curEl.style.top = mY + 'px'; }
-      if (ringEl) { ringEl.style.left = rX + 'px'; ringEl.style.top = rY + 'px'; }
-      requestAnimationFrame(animCursor);
-    }
-    animCursor();
-
-    document.querySelectorAll('button, a, input, .pill, .faq-item, .testimonial-card').forEach(el => {
-      el.addEventListener('mouseenter', () => document.body.classList.add('cursor-grow'));
-      el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-grow'));
-    });
-
-    let lastTrail = 0;
-    document.addEventListener('mousemove', e => {
-      const now = Date.now();
-      if (now - lastTrail > 30) {
-        const t = document.createElement('div');
-        t.className = 'cursor-trail';
-        t.style.left = (e.clientX - 2) + 'px';
-        t.style.top = (e.clientY - 2) + 'px';
-        document.body.appendChild(t);
-        setTimeout(() => t.remove(), 600);
-        lastTrail = now;
-      }
-    });
-
-    document.addEventListener('click', e => {
-      const r = document.createElement('div');
-      r.className = 'ripple';
-      r.style.left = e.clientX + 'px';
-      r.style.top = e.clientY + 'px';
-      document.body.appendChild(r);
-      setTimeout(() => r.remove(), 800);
-    });
-
-    document.addEventListener('mousedown', () => {
-      if (curEl) curEl.style.transform = 'translate(-5px,-5px) scale(1.6)';
-      if (ringEl) ringEl.style.transform = 'translate(-18px,-18px) scale(.75)';
-    });
-    document.addEventListener('mouseup', () => {
-      if (curEl) curEl.style.transform = 'translate(-5px,-5px) scale(1)';
-      if (ringEl) ringEl.style.transform = 'translate(-18px,-18px) scale(1)';
-    });
-
     /* ════════════════════════════════════════════════════════════
        AUTH PANEL SUBTLE TILT
        ════════════════════════════════════════════════════════════ */
