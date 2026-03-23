@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>StudyAI — Achievements</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>"/>
+  <link rel="stylesheet" href="assets/css/global.css"/>
+  <link rel="stylesheet" href="assets/css/components.css"/>
+  <style>
+    .ach-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r); padding:18px; text-align:center; transition:all .2s; cursor:pointer; position:relative; overflow:hidden; }
+    .ach-card:hover { transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,.25); }
+    .ach-card.locked { opacity:.35; filter:grayscale(1); }
+    .ach-card.unlocked { border-color:rgba(250,130,49,.25); }
+    .ach-card.unlocked::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-5); }
+    .ach-icon { font-size:2.2rem; display:block; margin-bottom:9px; }
+    .ach-name { font-family:var(--font-display); font-size:.88rem; font-weight:700; margin-bottom:4px; }
+    .ach-desc { font-size:.72rem; color:var(--text-muted); line-height:1.5; }
+    .xp-bar-wrap { background:rgba(255,255,255,.06); border-radius:100px; height:10px; overflow:hidden; margin:12px 0 6px; }
+    .xp-bar-fill { height:100%; border-radius:100px; background:var(--grad-1); transition:width 1s ease; }
+    .level-badge { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:100px; font-size:.8rem; font-weight:700; }
+    .cat-header { grid-column:1/-1; display:flex; align-items:center; gap:10px; margin:8px 0 4px; }
+    .cat-line { flex:1; height:1px; background:var(--border); }
+    .cat-label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); white-space:nowrap; }
+  </style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+<div class="app-layout" id="app-layout">
+  <div class="main-content">
+    <div class="page-body">
+      <div class="page-header">
+        <div class="page-header-left"><h1>🏆 Achievements</h1><p>Your earned badges and XP milestones</p></div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stat-grid" id="ach-stats"></div>
+
+      <!-- XP Level bar -->
+      <div class="card mb-4">
+        <div class="flex items-center between mb-2">
+          <div class="flex items-center gap-3">
+            <div class="level-badge" id="level-badge" style="background:var(--grad-1);color:#fff">⭐ Beginner</div>
+            <span class="text-sm font-bold" id="xp-text">0 XP</span>
+          </div>
+          <span class="text-xs text-muted" id="xp-next-text">Next level: 50 XP</span>
+        </div>
+        <div class="xp-bar-wrap">
+          <div class="xp-bar-fill" id="xp-bar" style="width:0%"></div>
+        </div>
+        <div class="text-xs text-muted" id="xp-level-desc">Keep studying to earn more XP and level up!</div>
+      </div>
+
+      <!-- Achievements grid -->
+      <div class="grid-4" id="ach-grid" style="align-items:start"></div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/achievements.js"></script>
+<script>initPage('Achievements').then(user => { if (user) initAchievements(); });</script>
+</body>
+</html>

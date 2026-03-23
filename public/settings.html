@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>StudyAI — Settings</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>"/>
+  <link rel="stylesheet" href="assets/css/global.css"/>
+  <link rel="stylesheet" href="assets/css/components.css"/>
+  <style>
+    .settings-section { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r); padding:22px; margin-bottom:16px; }
+    .settings-title { font-family:var(--font-display); font-weight:700; font-size:.92rem; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); background:var(--grad-main); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .settings-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.03); gap:14px; }
+    .settings-row:last-child { border-bottom:none; }
+    .settings-row-title { font-size:.85rem; font-weight:500; }
+    .settings-row-desc  { font-size:.72rem; color:var(--text-muted); margin-top:2px; }
+  </style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+<div class="app-layout" id="app-layout">
+  <div class="main-content">
+    <div class="page-body">
+      <div class="page-header">
+        <div class="page-header-left"><h1>⚙️ Settings</h1><p>Customise your StudyAI experience</p></div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Left column -->
+        <div>
+          <!-- Profile -->
+          <div class="settings-section">
+            <div class="settings-title">👤 Profile</div>
+            <div class="form-group"><label class="form-label">Full Name</label><input id="s-name" class="form-input" placeholder="Your name"/></div>
+            <div class="form-group"><label class="form-label">Email</label><input id="s-email" class="form-input" type="email" placeholder="you@email.com"/></div>
+            <div class="form-group"><label class="form-label">Course / Stream</label><input id="s-course" class="form-input" placeholder="e.g. Computer Science"/></div>
+            <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
+          </div>
+
+          <!-- Appearance -->
+          <div class="settings-section">
+            <div class="settings-title">🎨 Appearance</div>
+            <div class="settings-row">
+              <div><div class="settings-row-title">Dark Mode</div><div class="settings-row-desc">Switch between dark and light themes</div></div>
+              <label class="toggle"><input type="checkbox" id="tog-dark" checked onchange="toggleTheme(this)"/><div class="toggle-track"></div></label>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-title">Accent Colour</div><div class="settings-row-desc">Choose your brand colour</div></div>
+              <div class="accent-dots">
+                <div class="accent-dot active" style="background:linear-gradient(135deg,#667eea,#764ba2)" onclick="setAccent('purple',this)"></div>
+                <div class="accent-dot" style="background:linear-gradient(135deg,#f093fb,#f5576c)" onclick="setAccent('pink',this)"></div>
+                <div class="accent-dot" style="background:linear-gradient(135deg,#4facfe,#00f2fe)" onclick="setAccent('blue',this)"></div>
+                <div class="accent-dot" style="background:linear-gradient(135deg,#43e97b,#38f9d7)" onclick="setAccent('green',this)"></div>
+                <div class="accent-dot" style="background:linear-gradient(135deg,#fa709a,#fee140)" onclick="setAccent('orange',this)"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Study Preferences -->
+          <div class="settings-section">
+            <div class="settings-title">📚 Study Preferences</div>
+            <div class="form-group"><label class="form-label">Daily Study Goal (hours)</label><input id="s-goal" class="form-input" type="number" value="6" min="1" max="16" step=".5"/></div>
+            <div class="form-group"><label class="form-label">Pomodoro Duration (minutes)</label><input id="s-pomo" class="form-input" type="number" value="25" min="5" max="60"/></div>
+            <div class="form-group"><label class="form-label">Default Subjects</label>
+              <div class="flex flex-wrap gap-2" id="subject-chips" style="margin-top:6px"></div>
+            </div>
+            <button class="btn btn-primary" onclick="savePreferences()">Save Preferences</button>
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div>
+          <!-- Notifications -->
+          <div class="settings-section">
+            <div class="settings-title">🔔 Notifications</div>
+            <div class="settings-row">
+              <div><div class="settings-row-title">Study Reminders</div><div class="settings-row-desc">Daily nudges to keep studying</div></div>
+              <label class="toggle"><input type="checkbox" id="n-study" checked/><div class="toggle-track"></div></label>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-title">Exam Alerts</div><div class="settings-row-desc">Countdown warnings for upcoming exams</div></div>
+              <label class="toggle"><input type="checkbox" id="n-exam" checked/><div class="toggle-track"></div></label>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-title">Revision Reminders</div><div class="settings-row-desc">Alerts for due revisions</div></div>
+              <label class="toggle"><input type="checkbox" id="n-revision" checked/><div class="toggle-track"></div></label>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-title">Achievement Popups</div><div class="settings-row-desc">Celebrate when you earn badges</div></div>
+              <label class="toggle"><input type="checkbox" id="n-achieve" checked/><div class="toggle-track"></div></label>
+            </div>
+            <button class="btn btn-secondary mt-3" onclick="saveNotifications()">Save Notifications</button>
+          </div>
+
+          <!-- Data Management -->
+          <div class="settings-section">
+            <div class="settings-title">💾 Data Management</div>
+            <div class="settings-row">
+              <div><div class="settings-row-title">Export All Data</div><div class="settings-row-desc">Download a full JSON backup</div></div>
+              <button class="btn btn-secondary btn-sm" onclick="exportAllData()">📤 Export</button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-title">Import Backup</div><div class="settings-row-desc">Restore from a previous export</div></div>
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-file').click()">📥 Import</button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-title">Reset All Data</div><div class="settings-row-desc" style="color:var(--red)">Permanently delete everything</div></div>
+              <button class="btn btn-danger btn-sm" onclick="resetAllData()">🗑️ Reset</button>
+            </div>
+            <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this)"/>
+          </div>
+
+          <!-- Account -->
+          <div class="settings-section">
+            <div class="settings-title">🔐 Account</div>
+            <div class="settings-row">
+              <div><div class="settings-row-title">Signed in as</div><div class="settings-row-desc" id="account-email">loading…</div></div>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-row-title">Sign Out</div><div class="settings-row-desc">Logs you out on this device</div></div>
+              <button class="btn btn-secondary btn-sm" onclick="doLogout()">🚪 Sign Out</button>
+            </div>
+          </div>
+
+          <!-- Keyboard Shortcuts -->
+          <div class="settings-section">
+            <div class="settings-title">⌨️ Keyboard Shortcuts</div>
+            <div class="settings-row"><div><div class="settings-row-title">Go to Notes</div></div><kbd style="padding:3px 9px;background:rgba(255,255,255,.08);border-radius:5px;font-size:.78rem;font-family:var(--font-mono)">Ctrl+N</kbd></div>
+            <div class="settings-row"><div><div class="settings-row-title">Close modal</div></div><kbd style="padding:3px 9px;background:rgba(255,255,255,.08);border-radius:5px;font-size:.78rem;font-family:var(--font-mono)">Escape</kbd></div>
+            <div class="settings-row"><div><div class="settings-row-title">AI Chat prefill</div></div><kbd style="padding:3px 9px;background:rgba(255,255,255,.08);border-radius:5px;font-size:.78rem;font-family:var(--font-mono)">Ctrl+K</kbd></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/settings.js"></script>
+<script>initPage('Settings').then(user => { if (user) initSettings(user); });</script>
+</body>
+</html>

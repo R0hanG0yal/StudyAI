@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>StudyAI — Summaries</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>"/>
+  <link rel="stylesheet" href="assets/css/global.css"/>
+  <link rel="stylesheet" href="assets/css/components.css"/>
+  <style>
+    .sum-card {
+      background   : var(--bg-card);
+      border       : 1px solid var(--border);
+      border-radius: var(--r);
+      padding      : 18px;
+      transition   : all .2s;
+      position     : relative;
+      overflow     : hidden;
+    }
+    .sum-card:hover { background:var(--bg-card-hover); transform:translateY(-1px); }
+    .sum-card::before {
+      content  : '';
+      position : absolute;
+      top:0; left:0; right:0;
+      height   : 3px;
+    }
+    .sum-card.general::before { background:var(--grad-1); }
+    .sum-card.bullet::before  { background:var(--grad-4); }
+    .sum-card.chapter::before { background:var(--grad-6); }
+    .sum-card.exam::before    { background:var(--grad-2); }
+    .sum-card.simple::before  { background:var(--grad-3); }
+
+    .type-tag {
+      display     : inline-flex;
+      align-items : center;
+      padding     : 3px 9px;
+      border-radius:100px;
+      font-size   : .67rem;
+      font-weight : 700;
+    }
+
+    /* Compare table */
+    .cmp-table { width:100%; border-collapse:collapse; font-size:.84rem; }
+    .cmp-table th { padding:9px 12px; background:rgba(255,255,255,.05); text-align:left; font-weight:700; border-bottom:1px solid var(--border); }
+    .cmp-table td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:top; line-height:1.5; }
+    .cmp-table tr:last-child td { border-bottom:none; }
+    .cmp-table tr:hover td { background:rgba(255,255,255,.02); }
+
+    /* Roadmap phases */
+    .roadmap-phase {
+      border-left  : 3px solid;
+      padding      : 14px 16px;
+      border-radius: 0 12px 12px 0;
+      margin-bottom: 12px;
+      background   : rgba(255,255,255,.03);
+    }
+    .phase-num   { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+    .phase-title { font-family:var(--font-display); font-weight:700; font-size:.95rem; margin-bottom:4px; }
+    .phase-days  { font-size:.76rem; color:var(--text-muted); }
+
+    /* AI generating state */
+    .ai-loading {
+      display      : flex;
+      flex-direction:column;
+      align-items  : center;
+      gap          : 14px;
+      padding      : 36px;
+      color        : var(--text-muted);
+    }
+    .ai-loading-icon { font-size:2.5rem; animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  </style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+<div class="app-layout" id="app-layout">
+  <div class="main-content">
+    <div class="page-body">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>📄 Summaries &amp; AI Tools</h1>
+          <p>Summaries, topic extractor, questions, formulas, roadmap &amp; compare</p>
+        </div>
+        <div class="page-header-right">
+          <button class="btn btn-secondary btn-sm" onclick="openSmartUpload({pageHint:'summaries',onSuccess:async r=>{SM.data=await apiGet('/data').catch(()=>SM.data);_populateSources();const el=document.getElementById('sum-src');if(el&&r.noteId)el.value=r.noteId;}})">🧠 AI Read File</button>
+          <button class="btn btn-secondary" onclick="openSumPDFUpload()">📄 Upload PDF</button>
+          <button class="btn btn-primary"   onclick="openModal('modal-gen-sum')">+ Generate Summary</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs" id="sum-tabs">
+        <div class="tab active" data-sv="list">📋 Summaries</div>
+        <div class="tab" data-sv="topics">🏷️ Topics</div>
+        <div class="tab" data-sv="questions">❓ Questions</div>
+        <div class="tab" data-sv="formulas">📐 Formulas</div>
+        <div class="tab" data-sv="roadmap">🗺️ Roadmap</div>
+        <div class="tab" data-sv="compare">⚖️ Compare</div>
+        <div class="tab" data-sv="onenight">🌙 One-Night</div>
+        <div class="tab" data-sv="youtube">📺 YouTube</div>
+      </div>
+
+      <!-- LIST -->
+      <div id="sv-list">
+        <div class="grid-2" id="sum-grid"></div>
+      </div>
+
+      <!-- TOPICS -->
+      <div id="sv-topics" style="display:none">
+        <div class="card">
+          <div class="card-title">🏷️ Topic Extraction</div>
+          <div class="flex gap-3 mb-4">
+            <select id="topic-src" class="form-input" style="flex:1"></select>
+            <button class="btn btn-primary" onclick="doExtractTopics()">Extract Topics</button>
+          </div>
+          <div id="topics-result"></div>
+        </div>
+      </div>
+
+      <!-- QUESTIONS -->
+      <div id="sv-questions" style="display:none">
+        <div class="card">
+          <div class="card-title">❓ Important Questions Generator</div>
+          <div class="grid-2 mb-3" style="gap:10px">
+            <select id="q-src" class="form-input"></select>
+            <select id="q-diff" class="form-input">
+              <option value="easy">😊 Easy</option>
+              <option value="medium" selected>🤔 Medium</option>
+              <option value="hard">😤 Hard</option>
+            </select>
+          </div>
+          <button class="btn btn-primary mb-4" onclick="doGenQuestions()">Generate Questions</button>
+          <div id="questions-result"></div>
+        </div>
+      </div>
+
+      <!-- FORMULAS -->
+      <div id="sv-formulas" style="display:none">
+        <div class="card">
+          <div class="card-title">📐 Formula Extractor</div>
+          <div class="flex gap-3 mb-4">
+            <select id="formula-src" class="form-input" style="flex:1"></select>
+            <button class="btn btn-primary" onclick="doExtractFormulas()">Extract</button>
+          </div>
+          <div id="formulas-result"></div>
+        </div>
+      </div>
+
+      <!-- ROADMAP -->
+      <div id="sv-roadmap" style="display:none">
+        <div class="card">
+          <div class="card-title">🗺️ Exam Roadmap Generator</div>
+          <div class="grid-2 mb-3" style="gap:10px">
+            <div class="form-group">
+              <label class="form-label">Subject</label>
+              <input id="rm-subject" class="form-input" placeholder="e.g. Operating Systems"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Exam Date</label>
+              <input id="rm-date" class="form-input" type="date"/>
+            </div>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label">Current Level</label>
+            <select id="rm-level" class="form-input">
+              <option value="beginner">🌱 Beginner</option>
+              <option value="intermediate" selected>📚 Intermediate</option>
+              <option value="advanced">🚀 Advanced</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="doGenRoadmap()">Generate Roadmap 🗺️</button>
+          <div id="roadmap-result" class="mt-4"></div>
+        </div>
+      </div>
+
+      <!-- COMPARE -->
+      <div id="sv-compare" style="display:none">
+        <div class="card">
+          <div class="card-title">⚖️ Compare Two Topics</div>
+          <div class="grid-2 mb-3" style="gap:10px">
+            <div class="form-group">
+              <label class="form-label">Topic A</label>
+              <input id="cmp-a" class="form-input" placeholder="e.g. Process"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Topic B</label>
+              <input id="cmp-b" class="form-input" placeholder="e.g. Thread"/>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="doCompare()">Compare ⚖️</button>
+          <div id="compare-result" class="mt-4"></div>
+        </div>
+      </div>
+
+      <!-- ONE-NIGHT -->
+      <div id="sv-onenight" style="display:none">
+        <div class="card">
+          <div class="card-title">🌙 One-Night-Before-Exam Mode</div>
+          <p class="text-sm text-dim mb-4">Emergency revision pack: must-know facts, formulas and definitions for tonight before your exam.</p>
+          <div class="flex gap-3 mb-4">
+            <select id="on-src" class="form-input" style="flex:1"></select>
+            <button class="btn btn-primary" id="btn-onenight" onclick="doOneNight()">🌙 Generate Pack</button>
+          </div>
+          <div id="onenight-result"></div>
+        </div>
+      </div>
+
+      <!-- YOUTUBE -->
+      <div id="sv-youtube" style="display:none">
+
+        <!-- Hero banner -->
+        <div style="background:linear-gradient(135deg,rgba(102,126,234,.12),rgba(240,147,251,.07));border:1px solid rgba(102,126,234,.2);border-radius:18px;padding:28px 32px;margin-bottom:20px">
+          <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;margin-bottom:8px;background:linear-gradient(135deg,#667eea,#f093fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+            📺 YouTube Lecture Summariser
+          </div>
+          <p style="color:#9ca3c0;font-size:.88rem;line-height:1.65;margin-bottom:0">
+            Paste any YouTube lecture link — AI extracts the full transcript and converts it into structured study notes, key concepts and exam questions.
+          </p>
+        </div>
+
+        <!-- URL input card -->
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:14px">🔗 Paste YouTube URL</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+            <input id="yt-url" class="form-input" style="flex:1;min-width:200px;font-size:.9rem"
+              placeholder="https://www.youtube.com/watch?v=... or youtu.be/..."
+              onkeydown="if(event.key==='Enter') doYoutubeSummarise()"/>
+            <button class="btn btn-primary" id="btn-yt" onclick="doYoutubeSummarise()"
+              style="padding:10px 24px;font-size:.9rem;white-space:nowrap">
+              📺 Summarise
+            </button>
+          </div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:.74rem;color:#6b7280">
+            <span>✅ CC/subtitles enabled</span>
+            <span>✅ English + Hindi</span>
+            <span>✅ Educational videos</span>
+            <span>❌ Private / age-restricted</span>
+          </div>
+        </div>
+
+        <!-- Result area -->
+        <div id="yt-result"></div>
+
+      </div>
+
+    </div><!-- /page-body -->
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<!-- Generate Summary Modal -->
+<div class="modal-overlay" id="modal-gen-sum">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🤖 Generate Summary</span>
+      <button class="modal-close" onclick="closeModal('modal-gen-sum')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Source Notes</label>
+      <select id="sum-src" class="form-input"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Summary Type</label>
+      <select id="sum-type" class="form-input">
+        <option value="general">📝 General Summary</option>
+        <option value="bullet">• Bullet Points</option>
+        <option value="chapter">📖 Chapter-wise</option>
+        <option value="exam">📋 Exam-Focused</option>
+        <option value="simple">💬 Simple Language</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-full" id="btn-gen-sum" onclick="doGenSummary()">Generate Summary</button>
+  </div>
+</div>
+
+<!-- View Summary Modal -->
+<div class="modal-overlay" id="modal-view-sum">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="view-sum-title">Summary</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="exportViewedSummary()">📤 Export</button>
+        <button class="modal-close" onclick="closeModal('modal-view-sum')">✕</button>
+      </div>
+    </div>
+    <div id="view-sum-body" style="font-size:.88rem;line-height:1.85;color:var(--text-dim)"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/smart-upload.js"></script>
+<script src="assets/js/summaries.js"></script>
+<script>
+  initPage('Summaries').then(user => { if (user) initSummaries(); });
+</script>
+</body>
+</html>

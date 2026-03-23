@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>StudyAI — My Notes</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>"/>
+  <link rel="stylesheet" href="assets/css/global.css"/>
+  <link rel="stylesheet" href="assets/css/components.css"/>
+  <style>
+    /* ── Notes page layout ── */
+    .notes-layout {
+      display      : grid;
+      grid-template-columns: 280px 1fr;
+      gap          : 0;
+      height       : calc(100vh - var(--topbar-h));
+      overflow     : hidden;
+    }
+
+    /* ── Left panel — note list ── */
+    .notes-panel {
+      background   : rgba(13,15,26,.6);
+      border-right : 1px solid var(--border);
+      display      : flex;
+      flex-direction:column;
+      overflow     : hidden;
+    }
+    .notes-panel-head {
+      padding      : 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display      : flex;
+      align-items  : center;
+      gap          : 8px;
+      flex-shrink  : 0;
+      background   : rgba(255,255,255,.02);
+    }
+    .notes-search {
+      flex         : 1;
+      padding      : 7px 12px;
+      background   : rgba(255,255,255,.06);
+      border       : 1px solid var(--border);
+      border-radius: 9px;
+      color        : var(--text);
+      font-size    : .82rem;
+      outline      : none;
+    }
+    .notes-search:focus { border-color:var(--border-focus); }
+    .notes-search::placeholder { color:var(--text-muted); }
+
+    .notes-list {
+      flex         : 1;
+      overflow-y   : auto;
+      padding      : 8px;
+    }
+
+    .note-item {
+      padding      : 11px 13px;
+      border-radius: 10px;
+      cursor       : pointer;
+      transition   : all .16s;
+      border       : 1px solid transparent;
+      margin-bottom: 3px;
+    }
+    .note-item:hover { background:rgba(255,255,255,.05); }
+    .note-item.active {
+      background   : linear-gradient(135deg,rgba(102,126,234,.14),rgba(240,147,251,.08));
+      border-color : rgba(102,126,234,.25);
+    }
+    .note-item-title {
+      font-size    : .85rem;
+      font-weight  : 600;
+      overflow     : hidden;
+      text-overflow: ellipsis;
+      white-space  : nowrap;
+      margin-bottom: 3px;
+    }
+    .note-item-preview {
+      font-size    : .73rem;
+      color        : var(--text-muted);
+      overflow     : hidden;
+      display      : -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp   : 2;
+      -webkit-box-orient: vertical;
+      line-height  : 1.4;
+    }
+    .note-item-meta {
+      display      : flex;
+      align-items  : center;
+      gap          : 5px;
+      margin-top   : 6px;
+      flex-wrap    : wrap;
+    }
+
+    /* ── Right panel — editor ── */
+    .editor-panel {
+      display      : flex;
+      flex-direction:column;
+      overflow     : hidden;
+      background   : var(--bg-primary);
+    }
+
+    .editor-toolbar {
+      padding      : 8px 14px;
+      border-bottom: 1px solid var(--border);
+      display      : flex;
+      align-items  : center;
+      gap          : 4px;
+      flex-wrap    : wrap;
+      background   : rgba(255,255,255,.02);
+      flex-shrink  : 0;
+    }
+    .tb-btn {
+      padding      : 5px 9px;
+      border-radius: 7px;
+      font-size    : .78rem;
+      color        : var(--text-dim);
+      cursor       : pointer;
+      transition   : all .15s;
+      border       : 1px solid transparent;
+      background   : none;
+      font-family  : var(--font);
+    }
+    .tb-btn:hover { background:rgba(255,255,255,.07); color:var(--text); border-color:var(--border); }
+    .tb-btn.ai    { color:var(--purple); }
+    .tb-btn.ai:hover { background:rgba(102,126,234,.12); border-color:rgba(102,126,234,.25); }
+    .tb-sep { width:1px; height:18px; background:var(--border); margin:0 3px; flex-shrink:0; }
+
+    .editor-meta {
+      padding      : 8px 16px;
+      border-bottom: 1px solid var(--border);
+      display      : flex;
+      align-items  : center;
+      gap          : 10px;
+      flex-wrap    : wrap;
+      flex-shrink  : 0;
+      background   : rgba(255,255,255,.01);
+    }
+    .note-title-input {
+      font-family  : var(--font-display);
+      font-size    : 1rem;
+      font-weight  : 700;
+      color        : var(--text);
+      background   : transparent;
+      border       : none;
+      border-bottom: 1px solid transparent;
+      outline      : none;
+      flex         : 1;
+      min-width    : 140px;
+      padding      : 3px 6px;
+      transition   : border-color .18s;
+    }
+    .note-title-input:focus { border-bottom-color:var(--purple); }
+    .note-title-input::placeholder { color:var(--text-muted); font-weight:400; }
+
+    .editor-body {
+      flex         : 1;
+      padding      : 20px 24px;
+      overflow-y   : auto;
+    }
+    #note-body {
+      width        : 100%;
+      height       : 100%;
+      background   : transparent;
+      border       : none;
+      color        : var(--text);
+      font-family  : var(--font);
+      font-size    : .92rem;
+      line-height  : 1.9;
+      resize       : none;
+      outline      : none;
+    }
+    #note-body::placeholder { color:var(--text-muted); }
+
+    .editor-footer {
+      padding      : 6px 16px;
+      border-top   : 1px solid var(--border);
+      display      : flex;
+      align-items  : center;
+      gap          : 10px;
+      font-size    : .72rem;
+      color        : var(--text-muted);
+      flex-shrink  : 0;
+      background   : rgba(255,255,255,.02);
+    }
+
+    /* empty editor state */
+    .editor-empty {
+      display      : flex;
+      flex-direction:column;
+      align-items  : center;
+      justify-content:center;
+      height       : 100%;
+      color        : var(--text-muted);
+      gap          : 14px;
+    }
+    .editor-empty-icon { font-size:3rem; opacity:.3; }
+
+    /* folder filter */
+    .folder-filter {
+      background   : rgba(255,255,255,.06);
+      border       : 1px solid var(--border);
+      border-radius: 8px;
+      color        : var(--text);
+      font-size    : .76rem;
+      padding      : 5px 8px;
+      outline      : none;
+      cursor       : pointer;
+    }
+    .folder-filter option { background:#131629; }
+
+    /* grid view */
+    .notes-grid {
+      display      : grid;
+      grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+      gap          : 12px;
+      padding      : 20px;
+    }
+    .note-grid-card {
+      background   : var(--bg-card);
+      border       : 1px solid var(--border);
+      border-radius: 14px;
+      padding      : 16px;
+      cursor       : pointer;
+      transition   : all .2s;
+    }
+    .note-grid-card:hover { border-color:rgba(102,126,234,.3); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.25); }
+    .note-grid-title { font-weight:700; font-size:.88rem; margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .note-grid-preview { font-size:.76rem; color:var(--text-muted); overflow:hidden; display:-webkit-box; -webkit-line-clamp:4; line-clamp:4; -webkit-box-orient:vertical; line-height:1.5; }
+
+    @media(max-width:768px){
+      .notes-layout { grid-template-columns:1fr; }
+      .notes-panel  { display:none; }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+</div>
+
+<div class="app-layout" id="app-layout">
+  <!-- sidebar injected -->
+  <div class="main-content">
+    <!-- topbar injected -->
+
+    <!-- Page header (above notes layout) -->
+    <div style="padding:14px 22px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div class="tabs" style="margin-bottom:0" id="notes-tabs">
+        <div class="tab active" data-view="editor">✏️ Editor</div>
+        <div class="tab" data-view="grid">⊞ Grid</div>
+        <div class="tab" data-view="pinned">📌 Pinned</div>
+        <div class="tab" data-view="bookmarks">🔖 Bookmarks</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="triggerUpload()">📁 .txt/.md</button>
+        <button class="btn btn-secondary btn-sm" onclick="openSmartUpload({pageHint:'notes',onSuccess:r=>{_loadNotes().then(()=>{if(r.noteId)_openNote(r.noteId)})}})">🧠 AI Read File</button>
+        <button class="btn btn-primary btn-sm"   onclick="createNote()">+ New Note</button>
+      </div>
+    </div>
+
+    <!-- EDITOR VIEW -->
+    <div id="view-editor" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+      <div class="notes-layout">
+
+        <!-- Left: note list -->
+        <div class="notes-panel">
+          <div class="notes-panel-head">
+            <input class="notes-search" id="notes-search" placeholder="Search notes…" oninput="searchNotes(this.value)"/>
+            <select class="folder-filter" id="folder-filter" onchange="filterNotes()">
+              <option value="all">All</option>
+            </select>
+          </div>
+          <div class="notes-list" id="notes-list">
+            <div style="padding:20px;text-align:center;color:var(--text-muted)">
+              <div class="spinner" style="margin:0 auto 10px"></div>
+              <div class="text-sm">Loading notes…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: editor -->
+        <div class="editor-panel" id="editor-panel">
+          <div class="editor-toolbar">
+            <button class="tb-btn" onclick="fmt('bold')"><b>B</b></button>
+            <button class="tb-btn" onclick="fmt('italic')"><i>I</i></button>
+            <button class="tb-btn" onclick="fmt('underline')"><u>U</u></button>
+            <div class="tb-sep"></div>
+            <button class="tb-btn" onclick="insH(1)">H1</button>
+            <button class="tb-btn" onclick="insH(2)">H2</button>
+            <button class="tb-btn" onclick="insH(3)">H3</button>
+            <div class="tb-sep"></div>
+            <button class="tb-btn" onclick="insBullet()">• List</button>
+            <button class="tb-btn" onclick="insCode()">{ }</button>
+            <button class="tb-btn" onclick="insTable()">⊞ Table</button>
+            <div class="tb-sep"></div>
+            <button class="tb-btn" onclick="pinNote()">📌 Pin</button>
+            <button class="tb-btn" onclick="bookmarkNote()">🔖 Bookmark</button>
+            <div class="tb-sep"></div>
+            <button class="tb-btn ai" onclick="aiSummaryFromNote()">🤖 Summary</button>
+            <button class="tb-btn ai" onclick="aiQuizFromNote()">🎯 Quiz</button>
+            <button class="tb-btn ai" onclick="aiFlashFromNote()">🃏 Cards</button>
+            <div class="tb-sep" style="margin-left:auto"></div>
+            <button class="tb-btn" onclick="exportNote()" title="Export as Markdown">📤</button>
+            <button class="tb-btn" onclick="deleteNote()" title="Delete note" style="color:var(--red)">🗑️</button>
+          </div>
+
+          <div class="editor-meta">
+            <input id="note-title" class="note-title-input" placeholder="Note title…" onchange="saveNote()"/>
+            <select id="note-folder" class="folder-filter" onchange="saveNote()">
+              <option>General</option><option>OS</option><option>DBMS</option>
+              <option>DSA</option><option>CN</option><option>AI</option><option>Math</option>
+            </select>
+            <input id="note-tags" class="notes-search" style="width:140px;flex:none" placeholder="Tags (comma sep)…" onchange="saveNote()"/>
+            <span id="save-status" class="text-xs text-muted">Saved</span>
+          </div>
+
+          <div class="editor-body">
+            <textarea id="note-body"
+              placeholder="Start typing your notes here…&#10;&#10;Tips:&#10;  # Heading 1   ## Heading 2&#10;  **bold**   *italic*   - bullet list&#10;&#10;Use the AI buttons above to generate summaries, quizzes or flashcards!"
+              oninput="onNoteInput()"></textarea>
+          </div>
+
+          <div class="editor-footer">
+            <div id="note-tags-display" style="display:flex;gap:4px;flex-wrap:wrap;flex:1"></div>
+            <span id="word-count">0 words</span>
+            <span>•</span>
+            <span id="char-count">0 chars</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRID VIEW -->
+    <div id="view-grid" style="flex:1;overflow-y:auto;display:none">
+      <div class="notes-grid" id="notes-grid-container"></div>
+    </div>
+
+    <!-- PINNED VIEW -->
+    <div id="view-pinned" style="flex:1;overflow-y:auto;display:none">
+      <div class="notes-grid" id="notes-pinned-container"></div>
+    </div>
+
+    <!-- BOOKMARKS VIEW -->
+    <div id="view-bookmarks" style="flex:1;overflow-y:auto;display:none">
+      <div class="notes-grid" id="notes-bookmarks-container"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- AI Summary Modal -->
+<div class="modal-overlay" id="modal-summary">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-summary-title">Summary</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="exportSummaryView()">📤 Export</button>
+        <button class="modal-close" onclick="closeModal('modal-summary')">✕</button>
+      </div>
+    </div>
+    <div id="modal-summary-body" style="line-height:1.85;font-size:.88rem;color:var(--text-dim)"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast-container"></div>
+<input type="file" id="file-upload" accept=".txt,.md" style="display:none" onchange="handleFileUpload(this)"/>
+
+<!-- Scripts -->
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/smart-upload.js"></script>
+<script src="assets/js/notes.js"></script>
+<script>
+  initPage('My Notes').then(user => { if (user) initNotes(); });
+</script>
+</body>
+</html>

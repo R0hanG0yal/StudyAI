@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>StudyAI — Revision Center</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔄</text></svg>"/>
+  <link rel="stylesheet" href="assets/css/global.css"/>
+  <link rel="stylesheet" href="assets/css/components.css"/>
+  <style>
+    .rev-card {
+      display      : flex;
+      align-items  : center;
+      gap          : 12px;
+      padding      : 13px 15px;
+      background   : var(--bg-card);
+      border       : 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      transition   : all .18s;
+    }
+    .rev-card:hover { background: var(--bg-card-hover); }
+    .rev-bar  { width:4px; border-radius:2px; align-self:stretch; flex-shrink:0; }
+
+    .weak-row {
+      display      : flex;
+      align-items  : center;
+      gap          : 12px;
+      padding      : 13px 15px;
+      background   : var(--bg-card);
+      border       : 1px solid var(--border);
+      border-radius : 12px;
+      margin-bottom: 8px;
+    }
+    .mistake-card {
+      padding      : 14px;
+      background   : rgba(245,87,108,.05);
+      border       : 1px solid rgba(245,87,108,.15);
+      border-radius: 12px;
+      margin-bottom: 9px;
+    }
+  </style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+<div class="app-layout" id="app-layout">
+  <div class="main-content">
+    <div class="page-body">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>🔄 Revision Center</h1>
+          <p>Smart scheduling, weak topics and mistake review</p>
+        </div>
+        <div class="page-header-right">
+          <button class="btn btn-primary" onclick="openModal('modal-add-rev')">+ Schedule Revision</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs" id="rev-tabs">
+        <div class="tab active" data-rv="schedule">📅 Schedule</div>
+        <div class="tab" data-rv="weak">⚠️ Weak Topics</div>
+        <div class="tab" data-rv="mistakes">❌ Mistakes</div>
+        <div class="tab" data-rv="history">📜 History</div>
+      </div>
+
+      <!-- SCHEDULE -->
+      <div id="rv-schedule">
+        <div class="grid-2 mb-4">
+          <div class="card">
+            <div class="card-title" style="color:var(--red)">🔴 Due Today</div>
+            <div id="rv-due-today"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color:var(--orange)">📅 Upcoming (7 days)</div>
+            <div id="rv-upcoming"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📋 All Revisions</div>
+          <div id="rv-all"></div>
+        </div>
+      </div>
+
+      <!-- WEAK TOPICS -->
+      <div id="rv-weak" style="display:none">
+        <div class="card">
+          <div class="card-title">⚠️ Weak Topics (from quiz results)</div>
+          <div id="weak-list"></div>
+        </div>
+      </div>
+
+      <!-- MISTAKES -->
+      <div id="rv-mistakes" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">❌ Mistake Review</span>
+            <span id="mistakes-count" class="badge badge-red"></span>
+          </div>
+          <div id="mistakes-list"></div>
+        </div>
+      </div>
+
+      <!-- HISTORY -->
+      <div id="rv-history" style="display:none">
+        <div class="card">
+          <div class="card-title">📜 Completed Revisions</div>
+          <div id="history-list"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Revision Modal -->
+<div class="modal-overlay" id="modal-add-rev">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🔄 Schedule Revision</span>
+      <button class="modal-close" onclick="closeModal('modal-add-rev')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Topic</label>
+      <input id="rv-topic" class="form-input" placeholder="e.g. Process Scheduling Algorithms"/>
+    </div>
+    <div class="grid-2" style="gap:10px">
+      <div class="form-group">
+        <label class="form-label">Subject</label>
+        <select id="rv-subject" class="form-input">
+          <option>OS</option><option>DBMS</option><option>DSA</option>
+          <option>CN</option><option>AI</option><option>Math</option><option>General</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <select id="rv-priority" class="form-input">
+          <option value="high">🔴 High</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Revision Date</label>
+      <input id="rv-date" class="form-input" type="date"/>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="addRevision()">Schedule Revision</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/revision.js"></script>
+<script>
+  document.getElementById('rv-date').value = addDays(1);
+  initPage('Revision Center').then(user => { if (user) initRevision(); });
+</script>
+</body>
+</html>

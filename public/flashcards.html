@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>StudyAI — Flashcards</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>"/>
+  <link rel="stylesheet" href="assets/css/global.css"/>
+  <link rel="stylesheet" href="assets/css/components.css"/>
+  <style>
+    /* ── 3D flip card ── */
+    .fc-scene {
+      width: 100%;
+      max-width: 560px;
+      height: 280px;
+      perspective: 1200px;
+      cursor: pointer;
+      margin: 0 auto;
+    }
+    .fc-card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform .6s cubic-bezier(.4,0,.2,1);
+    }
+    .fc-card.flipped { transform: rotateY(180deg); }
+
+    .fc-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      backface-visibility: hidden;
+      gap: 12px;
+    }
+    .fc-front {
+      background: linear-gradient(135deg,
+        rgba(102,126,234,.12), rgba(240,147,251,.06));
+      border-color: rgba(102,126,234,.22);
+    }
+    .fc-back {
+      background: linear-gradient(135deg,
+        rgba(79,172,254,.12), rgba(67,233,123,.06));
+      border-color: rgba(79,172,254,.22);
+      transform: rotateY(180deg);
+    }
+    .fc-label {
+      font-size: .66rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--text-muted);
+    }
+    .fc-text {
+      font-size: 1.05rem;
+      font-weight: 600;
+      line-height: 1.65;
+      color: var(--text);
+      max-width: 440px;
+    }
+    .fc-hint {
+      font-size: .72rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .fc-deck-badge {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      font-size: .66rem;
+    }
+
+    /* Difficulty buttons */
+    .diff-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .diff-btn {
+      padding: 8px 20px;
+      border-radius: 100px;
+      font-size: .8rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1.5px solid;
+      transition: all .18s;
+      font-family: var(--font);
+    }
+    .diff-easy   { background:rgba(67,233,123,.08);  border-color:rgba(67,233,123,.25);  color:var(--green);  }
+    .diff-easy:hover  { background:rgba(67,233,123,.18); transform:translateY(-2px); }
+    .diff-medium { background:rgba(250,130,49,.08);  border-color:rgba(250,130,49,.25);  color:var(--orange); }
+    .diff-medium:hover{ background:rgba(250,130,49,.18); transform:translateY(-2px); }
+    .diff-hard   { background:rgba(245,87,108,.08);  border-color:rgba(245,87,108,.25);  color:var(--red);    }
+    .diff-hard:hover  { background:rgba(245,87,108,.18); transform:translateY(-2px); }
+
+    /* Mini card grid */
+    .fc-mini-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
+      gap: 10px;
+    }
+    .fc-mini-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px;
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .fc-mini-card:hover {
+      border-color: rgba(102,126,234,.3);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+    }
+    .fc-mini-front {
+      font-weight: 600;
+      font-size: .84rem;
+      margin-bottom: 6px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .fc-mini-back {
+      font-size: .74rem;
+      color: var(--text-muted);
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-height: 1.5;
+    }
+
+    /* Nav row */
+    .fc-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 14px;
+    }
+    .fc-nav-count {
+      font-family: var(--font-mono);
+      font-size: .88rem;
+      color: var(--text-muted);
+      min-width: 60px;
+      text-align: center;
+    }
+
+    /* Progress arc */
+    .session-stats {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .sess-stat {
+      text-align: center;
+      padding: 10px 18px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .sess-stat-val {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+    .sess-stat-lbl { font-size: .68rem; color: var(--text-muted); margin-top: 2px; }
+  </style>
+</head>
+<body>
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+</div>
+
+<div class="app-layout" id="app-layout">
+  <div class="main-content">
+    <div class="page-body">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>🃏 Flashcards</h1>
+          <p>Spaced-repetition learning · AI-generated or manual</p>
+        </div>
+        <div class="page-header-right">
+          <button class="btn btn-secondary btn-sm" onclick="openSmartUpload({pageHint:'flashcards',onSuccess:async r=>{FC.data=await apiGet('/data').catch(()=>FC.data);FC.all=FC.data.flashcards||[];_populateSources();_populateDecks();_renderStats();loadDeck();}})">🧠 AI Read File</button>
+          <button class="btn btn-secondary" onclick="openModal('modal-manual-card')">+ Manual</button>
+          <button class="btn btn-primary"   onclick="openModal('modal-gen-fc')">🤖 Generate</button>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stat-grid" id="fc-stats"></div>
+
+      <!-- Tabs -->
+      <div class="tabs" id="fc-tabs">
+        <div class="tab active" data-fv="study">📖 Study</div>
+        <div class="tab" data-fv="all">⊞ All Cards</div>
+        <div class="tab" data-fv="due">🔔 Due Today</div>
+        <div class="tab" data-fv="favs">⭐ Favourites</div>
+      </div>
+
+      <!-- ── STUDY VIEW ── -->
+      <div id="fv-study">
+        <div class="card" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+            <div style="display:flex;gap:9px;align-items:center">
+              <select id="fc-deck-sel" class="form-input" style="width:auto;padding:7px 12px;font-size:.82rem" onchange="loadDeck()">
+                <option value="all">All Decks</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" onclick="shuffleDeck()">🔀 Shuffle</button>
+            </div>
+            <span id="fc-count" style="font-family:var(--font-mono);font-size:.86rem;color:var(--text-muted)">0 / 0</span>
+          </div>
+
+          <!-- 3D card -->
+          <div class="fc-scene" id="fc-scene" onclick="flipCard()">
+            <div class="fc-card" id="fc-card">
+              <div class="fc-face fc-front">
+                <span class="fc-label">Question</span>
+                <div class="fc-text" id="fc-front-text">No cards yet! Generate or create some.</div>
+                <span class="fc-hint">Click anywhere to flip ↺</span>
+              </div>
+              <div class="fc-face fc-back">
+                <span class="fc-label">Answer</span>
+                <div class="fc-text" id="fc-back-text">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Difficulty buttons -->
+          <div class="diff-row">
+            <button class="diff-btn diff-easy"   onclick="markCard('easy')">😊 Easy</button>
+            <button class="diff-btn diff-medium" onclick="markCard('medium')">🤔 Medium</button>
+            <button class="diff-btn diff-hard"   onclick="markCard('hard')">😰 Hard</button>
+          </div>
+
+          <!-- Navigation -->
+          <div class="fc-nav">
+            <button class="btn btn-secondary" style="padding:7px 16px" onclick="prevCard()">← Prev</button>
+            <span class="fc-nav-count" id="fc-nav-count">0 / 0</span>
+            <button class="btn btn-secondary" style="padding:7px 16px" onclick="nextCard()">Next →</button>
+          </div>
+        </div>
+
+        <!-- Session stats -->
+        <div class="session-stats" id="fc-session-stats">
+          <div class="sess-stat"><div class="sess-stat-val" id="ss-easy"   style="color:var(--green)">0</div><div class="sess-stat-lbl">Easy</div></div>
+          <div class="sess-stat"><div class="sess-stat-val" id="ss-medium" style="color:var(--orange)">0</div><div class="sess-stat-lbl">Medium</div></div>
+          <div class="sess-stat"><div class="sess-stat-val" id="ss-hard"   style="color:var(--red)">0</div><div class="sess-stat-lbl">Hard</div></div>
+          <div class="sess-stat"><div class="sess-stat-val" id="ss-total"  style="color:var(--purple)">0</div><div class="sess-stat-lbl">Reviewed</div></div>
+        </div>
+      </div>
+
+      <!-- ── ALL CARDS VIEW ── -->
+      <div id="fv-all" style="display:none">
+        <div class="fc-mini-grid" id="fc-all-grid"></div>
+      </div>
+
+      <!-- ── DUE TODAY VIEW ── -->
+      <div id="fv-due" style="display:none">
+        <div style="margin-bottom:14px;padding:12px 16px;background:rgba(79,172,254,.07);border:1px solid rgba(79,172,254,.18);border-radius:12px;font-size:.84rem;color:var(--cyan)">
+          🔔 These cards are scheduled for review today based on spaced repetition.
+        </div>
+        <div class="fc-mini-grid" id="fc-due-grid"></div>
+      </div>
+
+      <!-- ── FAVOURITES VIEW ── -->
+      <div id="fv-favs" style="display:none">
+        <div class="fc-mini-grid" id="fc-fav-grid"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Generate Flashcards Modal -->
+<div class="modal-overlay" id="modal-gen-fc">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🤖 Generate Flashcards</span>
+      <button class="modal-close" onclick="closeModal('modal-gen-fc')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Source Notes</label>
+      <select id="fcg-src" class="form-input"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Deck Name</label>
+      <input id="fcg-deck" class="form-input" placeholder="e.g. OS Concepts, DBMS Basics"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Number of Cards</label>
+      <select id="fcg-count" class="form-input">
+        <option value="10">10 cards</option>
+        <option value="15" selected>15 cards</option>
+        <option value="20">20 cards</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-full" id="btn-gen-fc" onclick="generateFlashcards()">
+      🤖 Generate Cards
+    </button>
+  </div>
+</div>
+
+<!-- Manual Card Modal -->
+<div class="modal-overlay" id="modal-manual-card">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">+ Create Flashcard</span>
+      <button class="modal-close" onclick="closeModal('modal-manual-card')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Front (Question / Term)</label>
+      <textarea id="fc-front-inp" class="form-input" rows="3" placeholder="What is a deadlock?"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Back (Answer / Definition)</label>
+      <textarea id="fc-back-inp" class="form-input" rows="3" placeholder="A deadlock is a state where…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Deck</label>
+      <input id="fc-deck-inp" class="form-input" placeholder="e.g. OS, DBMS, DSA…"/>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="createManualCard()">Create Card</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/smart-upload.js"></script>
+<script src="assets/js/flashcards.js"></script>
+<script>
+  initPage('Flashcards').then(user => { if (user) initFlashcards(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>StudyAI — Quiz Zone</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>"/>
+  <link rel="stylesheet" href="assets/css/global.css"/>
+  <link rel="stylesheet" href="assets/css/components.css"/>
+  <style>
+    /* ── Quiz option cards ── */
+    .q-option {
+      display       : flex;
+      align-items   : center;
+      gap           : 12px;
+      padding       : 13px 16px;
+      background    : rgba(255,255,255,.04);
+      border        : 1.5px solid var(--border);
+      border-radius : 12px;
+      cursor        : pointer;
+      transition    : all .18s;
+      font-size     : .88rem;
+    }
+    .q-option:hover:not(.disabled) {
+      background    : rgba(102,126,234,.08);
+      border-color  : rgba(102,126,234,.35);
+      transform     : translateX(4px);
+    }
+    .q-option.selected { background:rgba(102,126,234,.1); border-color:var(--purple); color:var(--purple); }
+    .q-option.correct  { background:rgba(67,233,123,.1);  border-color:var(--green);  color:var(--green);  }
+    .q-option.wrong    { background:rgba(245,87,108,.1);  border-color:var(--red);    color:var(--red);    }
+    .q-option.disabled { pointer-events:none; opacity:.7; }
+
+    .q-letter {
+      width:28px; height:28px; border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:.76rem; font-weight:700;
+      background:rgba(255,255,255,.07);
+      flex-shrink:0;
+    }
+
+    /* Explanation box */
+    .q-explanation {
+      margin-top:12px; padding:12px 16px;
+      background:rgba(67,233,123,.07);
+      border:1px solid rgba(67,233,123,.18);
+      border-radius:10px;
+      font-size:.82rem; color:var(--green);
+      line-height:1.6;
+      display:none;
+    }
+    .q-explanation.show { display:block; }
+
+    /* Timer */
+    .quiz-timer {
+      font-family   : var(--font-mono);
+      font-size     : 1rem;
+      font-weight   : 700;
+      color         : var(--cyan);
+      padding       : 6px 14px;
+      background    : rgba(79,172,254,.1);
+      border        : 1px solid rgba(79,172,254,.2);
+      border-radius : 100px;
+    }
+    .quiz-timer.urgent { color:var(--red); background:rgba(245,87,108,.1); border-color:rgba(245,87,108,.2); animation:urgp .8s infinite; }
+    @keyframes urgp{0%,100%{opacity:1}50%{opacity:.5}}
+
+    /* Score ring */
+    .score-ring {
+      width:140px; height:140px;
+      border-radius:50%;
+      background:conic-gradient(var(--purple) var(--deg,0deg), rgba(255,255,255,.05) 0deg);
+      display:flex; align-items:center; justify-content:center;
+      margin:0 auto 20px;
+      box-shadow:0 0 30px rgba(102,126,234,.25);
+    }
+    .score-inner {
+      width:108px; height:108px; border-radius:50%;
+      background:var(--bg-secondary);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+    }
+    .score-pct {
+      font-family:var(--font-display); font-size:1.9rem; font-weight:800;
+      background:var(--grad-1); -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .score-frac { font-size:.76rem; color:var(--text-muted); }
+
+    /* Quiz list item */
+    .quiz-list-item {
+      display:flex; align-items:center; gap:12px;
+      padding:12px 14px;
+      background:var(--bg-card); border:1px solid var(--border);
+      border-radius:12px; margin-bottom:8px; transition:all .18s;
+    }
+    .quiz-list-item:hover { border-color:rgba(102,126,234,.25); background:var(--bg-card-hover); }
+
+    /* Progress bar */
+    .quiz-progress-bar {
+      height:5px; background:rgba(255,255,255,.06);
+      border-radius:3px; overflow:hidden; margin-bottom:16px;
+    }
+    .quiz-progress-fill {
+      height:100%; border-radius:3px;
+      background:var(--grad-1); transition:width .4s ease;
+    }
+
+    /* Review item */
+    .review-item {
+      padding:14px; border-radius:12px; margin-bottom:10px;
+      border:1px solid var(--border); border-left:3px solid;
+    }
+    .review-item.correct { border-left-color:var(--green); background:rgba(67,233,123,.04); }
+    .review-item.wrong   { border-left-color:var(--red);   background:rgba(245,87,108,.04); }
+  </style>
+</head>
+<body>
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+</div>
+
+<div class="app-layout" id="app-layout">
+  <div class="main-content">
+    <div class="page-body">
+
+      <!-- ══ HOME VIEW ══ -->
+      <div id="view-home">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1>🎯 Quiz Zone</h1>
+            <p>AI-generated MCQs with real explanations · Timed · Scored</p>
+          </div>
+          <div class="page-header-right">
+          <button class="btn btn-secondary btn-sm" onclick="openSmartUpload({pageHint:'quiz',onSuccess:async r=>{QZ.data=await apiGet('/data').catch(()=>QZ.data);_populateSourceSelect();const el=document.getElementById('qg-src');if(el&&r.noteId)el.value=r.noteId;}})">🧠 AI Read File</button>
+            <button class="btn btn-primary" onclick="openModal('modal-gen-quiz')">
+              + Generate Quiz
+            </button>
+          </div>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="stat-grid" id="quiz-stats"></div>
+
+        <div class="grid-2">
+          <!-- Quiz list -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📋 Saved Quizzes</span>
+            </div>
+            <div id="quiz-list"></div>
+          </div>
+
+          <!-- Leaderboard -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🏆 Subject Leaderboard</span>
+            </div>
+            <div id="quiz-leaderboard"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ ACTIVE QUIZ VIEW ══ -->
+      <div id="view-quiz" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div id="quiz-active-title" class="font-bold" style="margin-bottom:6px"></div>
+            <div class="quiz-progress-bar" style="width:280px">
+              <div class="quiz-progress-fill" id="quiz-progress" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="quiz-timer" id="quiz-timer">⏱ 00:00</div>
+          <button class="btn btn-secondary btn-sm" onclick="exitQuiz()">Exit Quiz</button>
+        </div>
+
+        <div id="quiz-question-wrap"></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px">
+          <button class="btn btn-secondary" id="btn-prev" onclick="prevQuestion()" style="visibility:hidden">← Prev</button>
+          <span id="quiz-counter" class="text-sm text-muted">Q1 of 10</span>
+          <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()">Next →</button>
+        </div>
+      </div>
+
+      <!-- ══ RESULTS VIEW ══ -->
+      <div id="view-results" style="display:none">
+        <div class="card" style="max-width:680px;margin:0 auto">
+          <div style="text-align:center;padding:28px 16px">
+            <div class="score-ring" id="score-ring">
+              <div class="score-inner">
+                <div class="score-pct" id="score-pct">0%</div>
+                <div class="score-frac" id="score-frac">0/0</div>
+              </div>
+            </div>
+            <div id="score-verdict" style="font-size:1.3rem;font-weight:700;margin-bottom:6px"></div>
+            <div id="score-message" class="text-dim" style="margin-bottom:22px"></div>
+            <div class="flex gap-3" style="justify-content:center;flex-wrap:wrap;margin-bottom:22px">
+              <button class="btn btn-primary" onclick="retryQuiz()">🔄 Retry</button>
+              <button class="btn btn-secondary" onclick="reviewQuiz()">📋 Review Answers</button>
+              <button class="btn btn-secondary" onclick="backToHome()">← Back</button>
+            </div>
+            <div id="quiz-review-section" style="display:none;text-align:left"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Generate Quiz Modal -->
+<div class="modal-overlay" id="modal-gen-quiz">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🎯 Generate Quiz</span>
+      <button class="modal-close" onclick="closeModal('modal-gen-quiz')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Source Notes</label>
+      <select id="qg-src" class="form-input"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Quiz Title</label>
+      <input id="qg-title" class="form-input" placeholder="e.g. OS Midterm Practice"/>
+    </div>
+    <div class="grid-2" style="gap:10px">
+      <div class="form-group">
+        <label class="form-label">Questions</label>
+        <select id="qg-count" class="form-input">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Difficulty</label>
+        <select id="qg-diff" class="form-input">
+          <option value="easy">😊 Easy</option>
+          <option value="medium" selected>🤔 Medium</option>
+          <option value="hard">😤 Hard</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Time per Question (seconds)</label>
+      <input id="qg-time" class="form-input" type="number" value="60" min="15" max="300"/>
+    </div>
+    <button class="btn btn-primary btn-full" id="btn-gen-quiz" onclick="generateQuiz()">
+      ✨ Generate &amp; Start
+    </button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/smart-upload.js"></script>
+<script src="assets/js/quiz.js"></script>
+<script>
+  initPage('Quiz Zone').then(user => { if (user) initQuiz(); });
+</script>
+</body>
+</html>

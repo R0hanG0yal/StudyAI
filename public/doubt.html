@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>StudyAI — Doubt Solver</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>"/>
+  <link rel="stylesheet" href="assets/css/global.css"/>
+  <link rel="stylesheet" href="assets/css/components.css"/>
+  <style>
+    .upload-zone {
+      border: 2px dashed rgba(102,126,234,.35);
+      border-radius: 18px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .22s;
+      background: rgba(102,126,234,.03);
+      position: relative;
+    }
+    .upload-zone:hover,
+    .upload-zone.drag { border-color:#667eea; background:rgba(102,126,234,.08); transform:scale(1.01); }
+    .upload-zone.has-image { border-color:rgba(67,233,123,.4); background:rgba(67,233,123,.04); }
+
+    .preview-img {
+      max-width: 100%; max-height: 320px;
+      border-radius: 12px; object-fit: contain;
+      border: 1px solid rgba(255,255,255,.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    }
+
+    .solution-box {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(102,126,234,.2);
+      border-radius: 16px;
+      padding: 24px;
+      line-height: 1.85;
+      font-size: .9rem;
+    }
+    .solution-box h2 { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; margin:16px 0 8px; color:var(--purple); }
+    .solution-box h2:first-child { margin-top:0; }
+
+    .camera-btn {
+      display: flex; align-items:center; gap:8px;
+      padding:9px 18px; border-radius:10px;
+      background:rgba(79,172,254,.1); border:1px solid rgba(79,172,254,.25);
+      color:var(--cyan); font-family:inherit; font-size:.84rem; font-weight:600;
+      cursor:pointer; transition:all .18s;
+    }
+    .camera-btn:hover { background:rgba(79,172,254,.18); transform:translateY(-1px); }
+
+    .subject-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .subject-chip {
+      padding:6px 14px; border-radius:100px; font-size:.76rem; font-weight:600;
+      cursor:pointer; border:1.5px solid; transition:all .18s;
+    }
+    .subject-chip:hover { transform:translateY(-1px); }
+    .subject-chip.active { color:#fff !important; }
+
+    .solving-overlay {
+      position: absolute; inset:0; border-radius:18px;
+      background:rgba(4,6,15,.8); backdrop-filter:blur(4px);
+      display:none; flex-direction:column;
+      align-items:center; justify-content:center; gap:14px;
+      z-index:10;
+    }
+    .solving-overlay.show { display:flex; }
+    .solve-spinner {
+      width:44px; height:44px;
+      border:3px solid rgba(102,126,234,.2);
+      border-top-color:#667eea;
+      border-radius:50%;
+      animation:spin .7s linear infinite;
+    }
+
+    /* History items */
+    .history-item {
+      padding:12px 14px;
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      border-radius:12px;
+      margin-bottom:8px;
+      cursor:pointer;
+      transition:all .18s;
+      display:flex; gap:12px; align-items:flex-start;
+    }
+    .history-item:hover { background:var(--bg-card-hover); border-color:rgba(102,126,234,.25); }
+    .history-thumb {
+      width:48px; height:48px; border-radius:8px;
+      object-fit:cover; flex-shrink:0;
+      border:1px solid rgba(255,255,255,.08);
+    }
+  </style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+<div class="app-layout" id="app-layout">
+  <div class="main-content">
+    <div class="page-body">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>🔍 AI Doubt Solver</h1>
+          <p>Upload a photo of any question — AI solves it step by step</p>
+        </div>
+      </div>
+
+      <div class="grid-2" style="gap:20px;align-items:start">
+
+        <!-- LEFT: Upload panel -->
+        <div>
+          <!-- Subject selector -->
+          <div class="card mb-4">
+            <div class="card-title mb-3">📚 Select Subject</div>
+            <div class="subject-chips" id="subject-chips">
+              <div class="subject-chip active" data-sub="General" style="border-color:#667eea;color:#667eea;background:rgba(102,126,234,.12)" onclick="selectSubject(this)">🧠 General</div>
+              <div class="subject-chip" data-sub="Math"    style="border-color:#f093fb;color:#f093fb;background:transparent" onclick="selectSubject(this)">📐 Math</div>
+              <div class="subject-chip" data-sub="Physics" style="border-color:#4facfe;color:#4facfe;background:transparent" onclick="selectSubject(this)">⚡ Physics</div>
+              <div class="subject-chip" data-sub="Chemistry" style="border-color:#43e97b;color:#43e97b;background:transparent" onclick="selectSubject(this)">🧪 Chemistry</div>
+              <div class="subject-chip" data-sub="DSA"     style="border-color:#fa709a;color:#fa709a;background:transparent" onclick="selectSubject(this)">💻 DSA/Code</div>
+              <div class="subject-chip" data-sub="OS"      style="border-color:#fee140;color:#fee140;background:transparent" onclick="selectSubject(this)">🖥️ OS</div>
+              <div class="subject-chip" data-sub="DBMS"    style="border-color:#a78bfa;color:#a78bfa;background:transparent" onclick="selectSubject(this)">🗄️ DBMS</div>
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">Extra context (optional)</label>
+              <input id="extra-context" class="form-input" placeholder="e.g. This is from Chapter 5, we use recursion approach…"/>
+            </div>
+          </div>
+
+          <!-- Upload zone -->
+          <div class="card" style="position:relative">
+            <div class="card-title mb-3">📸 Upload Question Image</div>
+            <div class="upload-zone" id="upload-zone"
+              ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"
+              onclick="document.getElementById('img-input').click()">
+              <div id="dz-content">
+                <div style="font-size:3rem;margin-bottom:12px">📸</div>
+                <div style="font-size:.95rem;font-weight:600;color:#f0f2ff;margin-bottom:6px">Drop your question image here</div>
+                <div style="font-size:.78rem;color:#6b7280;margin-bottom:16px">or click to browse · JPG, PNG, WEBP</div>
+                <div style="display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border-radius:100px;background:linear-gradient(135deg,rgba(102,126,234,.2),rgba(240,147,251,.12));border:1px solid rgba(102,126,234,.3);font-size:.78rem;font-weight:600;color:#a78bfa">
+                  Choose Image
+                </div>
+              </div>
+              <div class="solving-overlay" id="solving-overlay">
+                <div class="solve-spinner"></div>
+                <div id="solve-status" style="color:#a78bfa;font-size:.88rem;font-weight:600">Reading question…</div>
+                <div style="font-size:.74rem;color:#6b7280">AI is solving step by step…</div>
+              </div>
+              <input type="file" id="img-input" accept="image/*" style="display:none" onchange="imageSelected(this)"/>
+            </div>
+
+            <!-- Camera button -->
+            <div style="display:flex;gap:10px;margin-top:12px">
+              <button class="camera-btn" style="flex:1;justify-content:center" onclick="openCamera()">
+                📷 Use Camera
+              </button>
+              <button class="btn btn-secondary" onclick="clearDoubt()" id="clear-btn" style="display:none">
+                🗑️ Clear
+              </button>
+            </div>
+
+            <!-- Image preview -->
+            <div id="img-preview-wrap" style="display:none;margin-top:14px;text-align:center">
+              <img id="img-preview" class="preview-img" src="" alt="Question"/>
+            </div>
+
+            <!-- Solve button -->
+            <button class="btn btn-primary btn-full" id="solve-btn"
+              style="margin-top:14px;justify-content:center;display:none"
+              onclick="solveDoubt()">
+              🔍 Solve This Question
+            </button>
+          </div>
+
+          <!-- Camera modal -->
+          <div id="camera-modal" style="display:none;margin-top:14px">
+            <div class="card">
+              <div class="card-title mb-3">📷 Camera</div>
+              <video id="camera-feed" autoplay playsinline style="width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.08)"></video>
+              <div style="display:flex;gap:10px;margin-top:10px">
+                <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="capturePhoto()">📸 Capture</button>
+                <button class="btn btn-secondary" onclick="closeCamera()">✕ Close</button>
+              </div>
+              <canvas id="capture-canvas" style="display:none"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Solution panel -->
+        <div>
+          <!-- Empty state -->
+          <div id="solution-empty" class="card" style="text-align:center;padding:48px 24px">
+            <div style="font-size:3.5rem;margin-bottom:14px;opacity:.3">🔍</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:6px">No question yet</div>
+            <div style="color:var(--text-muted);font-size:.84rem">Upload a photo of your question and AI will solve it step by step with full explanation.</div>
+            <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;text-align:left;max-width:280px;margin-inline:auto">
+              <div style="font-size:.76rem;color:#6b7280">✅ Math equations &amp; proofs</div>
+              <div style="font-size:.76rem;color:#6b7280">✅ Physics &amp; Chemistry problems</div>
+              <div style="font-size:.76rem;color:#6b7280">✅ Programming questions &amp; code</div>
+              <div style="font-size:.76rem;color:#6b7280">✅ Theory questions &amp; short answers</div>
+              <div style="font-size:.76rem;color:#6b7280">✅ Handwritten notes &amp; problems</div>
+            </div>
+          </div>
+
+          <!-- Solution display -->
+          <div id="solution-display" style="display:none">
+            <div class="card mb-3">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;background:linear-gradient(135deg,#667eea,#f093fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+                  ✅ Solution Ready
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-secondary btn-sm" onclick="saveToNotes()">📝 Save to Notes</button>
+                  <button class="btn btn-secondary btn-sm" onclick="copyToClipboard()">📋 Copy</button>
+                </div>
+              </div>
+              <div class="solution-box" id="solution-content"></div>
+            </div>
+          </div>
+
+          <!-- History -->
+          <div class="card" id="history-card" style="display:none">
+            <div class="card-title mb-3">🕒 Previous Doubts</div>
+            <div id="doubt-history"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/doubt.js"></script>
+<script>
+  initPage('AI Doubt Solver').then(user => { if (user) initDoubt(); });
+</script>
+</body>
+</html>

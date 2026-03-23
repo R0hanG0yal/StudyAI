@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>StudyAI — Study Planner</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>"/>
+  <link rel="stylesheet" href="assets/css/global.css"/>
+  <link rel="stylesheet" href="assets/css/components.css"/>
+  <style>
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+    .cal-wd   { text-align:center; font-size:.64rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); padding:6px 0; }
+    .cal-day  { aspect-ratio:1; border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:all .16s; font-size:.82rem; border:1px solid transparent; position:relative; }
+    .cal-day:hover { background:rgba(255,255,255,.06); }
+    .cal-day.today  { background:linear-gradient(135deg,rgba(102,126,234,.18),rgba(240,147,251,.1)); border-color:rgba(102,126,234,.3); color:#fff; font-weight:700; }
+    .cal-day.sel    { background:var(--grad-1); color:#fff; font-weight:700; box-shadow:0 4px 14px rgba(102,126,234,.4); }
+    .cal-day.dim    { opacity:.22; pointer-events:none; }
+    .cal-day.has-t::after { content:''; position:absolute; bottom:4px; width:4px; height:4px; border-radius:50%; background:var(--green); }
+    .cal-day.has-e::after { background:var(--red); }
+
+    .exam-cdown { display:flex; align-items:center; justify-content:space-between; padding:13px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; margin-bottom:9px; transition:.18s; }
+    .exam-cdown:hover { background:var(--bg-card-hover); }
+    .exam-days-big { font-family:var(--font-display); font-size:1.9rem; font-weight:800; line-height:1; }
+
+    .day-header { font-family:var(--font-display); font-weight:700; font-size:.9rem; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .filter-bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+    .fsel { background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:9px; color:var(--text); font-size:.78rem; padding:6px 11px; outline:none; cursor:pointer; }
+    .fsel option { background:#131629; }
+  </style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+<div class="app-layout" id="app-layout">
+  <div class="main-content">
+    <div class="page-body">
+
+      <div class="page-header">
+        <div class="page-header-left"><h1>📅 Study Planner</h1><p>Tasks, exams, calendar and daily goals</p></div>
+        <div class="page-header-right">
+          <button class="btn btn-secondary" onclick="openModal('modal-add-exam')">📅 Add Exam</button>
+          <button class="btn btn-primary"   onclick="openModal('modal-add-task')">+ Add Task</button>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:16px">
+        <!-- Calendar -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <button class="btn btn-secondary btn-sm" onclick="calNav(-1)">←</button>
+            <span id="cal-label" style="font-family:var(--font-display);font-weight:700;font-size:.95rem"></span>
+            <button class="btn btn-secondary btn-sm" onclick="calNav(1)">→</button>
+          </div>
+          <div class="cal-grid" id="cal-weekdays"></div>
+          <div class="cal-grid" id="cal-grid" style="margin-top:2px"></div>
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+            <div class="day-header">
+              <span id="day-label">Today</span>
+              <button class="btn btn-secondary btn-sm" onclick="openModal('modal-add-task')">+ Task</button>
+            </div>
+            <div id="day-tasks-list"></div>
+          </div>
+        </div>
+
+        <!-- Exams + Goal -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="card" style="flex:1">
+            <div class="card-header">
+              <span class="card-title">📅 Exam Countdowns</span>
+              <button class="btn btn-secondary btn-sm" onclick="openModal('modal-add-exam')">+ Add</button>
+            </div>
+            <div id="exam-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🎯 Daily Study Goal</div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <span class="text-sm">Today's Progress</span>
+              <span id="goal-hrs-text" style="font-family:var(--font-mono);font-size:.9rem;font-weight:700">0h / 0h</span>
+            </div>
+            <div class="progress mb-3" style="height:10px">
+              <div class="progress-fill progress-gradient" id="goal-bar" style="width:0%;border-radius:5px"></div>
+            </div>
+            <div id="goal-pct-text" class="text-xs text-muted mb-3"></div>
+            <div style="display:flex;gap:8px">
+              <input id="goal-input" class="form-input" type="number" placeholder="Hours/day" min=".5" max="16" step=".5" style="flex:1"/>
+              <button class="btn btn-primary btn-sm" onclick="setGoal()">Set</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All Tasks -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📋 All Tasks</span>
+          <div class="filter-bar" style="margin-bottom:0">
+            <select class="fsel" id="filter-subject" onchange="renderAllTasks()">
+              <option value="all">All Subjects</option>
+              <option>OS</option><option>DBMS</option><option>DSA</option><option>CN</option><option>AI</option><option>Math</option><option>General</option>
+            </select>
+            <select class="fsel" id="filter-status" onchange="renderAllTasks()">
+              <option value="all">All</option>
+              <option value="pending">⏳ Pending</option>
+              <option value="done">✅ Done</option>
+            </select>
+            <select class="fsel" id="filter-priority" onchange="renderAllTasks()">
+              <option value="all">Any Priority</option>
+              <option value="high">🔴 High</option>
+              <option value="medium">🟡 Medium</option>
+              <option value="low">🟢 Low</option>
+            </select>
+          </div>
+        </div>
+        <div id="all-tasks-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal-overlay" id="modal-add-task">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">+ Add Task</span>
+      <button class="modal-close" onclick="closeModal('modal-add-task')">✕</button>
+    </div>
+    <div class="form-group"><label class="form-label">Task Description</label><input id="t-text" class="form-input" placeholder="e.g. Study Chapter 5 — Process Scheduling"/></div>
+    <div class="grid-2" style="gap:10px">
+      <div class="form-group"><label class="form-label">Subject</label>
+        <select id="t-subject" class="form-input"><option>OS</option><option>DBMS</option><option>DSA</option><option>CN</option><option>AI</option><option>Math</option><option>General</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Priority</label>
+        <select id="t-priority" class="form-input"><option value="high">🔴 High</option><option value="medium" selected>🟡 Medium</option><option value="low">🟢 Low</option></select>
+      </div>
+    </div>
+    <div class="grid-2" style="gap:10px">
+      <div class="form-group"><label class="form-label">Due Date</label><input id="t-date" class="form-input" type="date"/></div>
+      <div class="form-group"><label class="form-label">Duration (hrs)</label><input id="t-duration" class="form-input" type="number" value="1" min=".5" max="8" step=".5"/></div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="addTask()">Add Task</button>
+  </div>
+</div>
+
+<!-- Add Exam Modal -->
+<div class="modal-overlay" id="modal-add-exam">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📅 Add Exam</span>
+      <button class="modal-close" onclick="closeModal('modal-add-exam')">✕</button>
+    </div>
+    <div class="form-group"><label class="form-label">Subject / Paper</label><input id="e-subject" class="form-input" placeholder="e.g. Operating Systems Midterm"/></div>
+    <div class="grid-2" style="gap:10px">
+      <div class="form-group"><label class="form-label">Exam Date</label><input id="e-date" class="form-input" type="date"/></div>
+      <div class="form-group"><label class="form-label">Type</label>
+        <select id="e-type" class="form-input"><option>Midterm</option><option>Final</option><option>Quiz</option><option>Practical</option><option>Assignment</option></select>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="addExam()">Add Exam</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/planner.js"></script>
+<script>
+  document.getElementById('t-date').value = today();
+  document.getElementById('e-date').value = addDays(14);
+  initPage('Study Planner').then(user => { if (user) initPlanner(); });
+</script>
+</body>
+</html>

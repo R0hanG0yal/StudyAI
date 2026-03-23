@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Environment variables (Never upload this - it contains your API keys)
+.env
+.env.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# User Data / Database (Do not upload dynamic files)
+data/
+*.json
+!package.json
+!package-lock.json
+
+# OS generated files
+.DS_Store
+Thumbs.db

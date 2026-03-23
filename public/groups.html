@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>StudyAI — Study Groups</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👥</text></svg>"/>
+  <link rel="stylesheet" href="assets/css/global.css"/>
+  <link rel="stylesheet" href="assets/css/components.css"/>
+  <style>
+    .group-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r); padding:20px; transition:all .2s; }
+    .group-card:hover { background:var(--bg-card-hover); transform:translateY(-2px); border-color:rgba(102,126,234,.25); box-shadow:0 8px 24px rgba(0,0,0,.2); }
+    .group-emoji { font-size:2rem; margin-bottom:10px; }
+    .mpips { display:flex; }
+    .mpip { width:24px; height:24px; border-radius:50%; border:2px solid var(--bg-secondary); margin-left:-6px; font-size:.6rem; display:flex; align-items:center; justify-content:center; font-weight:700; }
+    .mpip:first-child { margin-left:0; }
+    .disc-item { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:9px; transition:.18s; }
+    .disc-item:hover { background:var(--bg-card-hover); }
+    .disc-q { font-size:.86rem; font-weight:600; margin-bottom:7px; line-height:1.5; }
+    .disc-meta { font-size:.7rem; color:var(--text-muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .best-ans { background:rgba(67,233,123,.07); border:1px solid rgba(67,233,123,.18); border-radius:8px; padding:9px 12px; font-size:.8rem; color:var(--green); line-height:1.6; margin:9px 0; }
+    .lb-row { display:flex; align-items:center; gap:12px; padding:9px 10px; border-radius:9px; transition:.15s; }
+    .lb-row:hover { background:var(--bg-card); }
+    .lb-rank { width:26px; font-family:var(--font-mono); font-size:.82rem; font-weight:700; color:var(--text-muted); text-align:center; }
+    .lb-score { margin-left:auto; font-family:var(--font-mono); font-size:.84rem; font-weight:700; color:var(--purple); }
+    .challenge-item { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:15px 16px; margin-bottom:10px; }
+    .reply-box { margin-top:10px; display:none; }
+    .reply-box.open { display:block; }
+  </style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+<div class="app-layout" id="app-layout">
+  <div class="main-content">
+    <div class="page-body">
+      <div class="page-header">
+        <div class="page-header-left"><h1>👥 Study Groups</h1><p>Collaborate, discuss and compete with peers</p></div>
+        <div class="page-header-right"><button class="btn btn-primary" onclick="openModal('modal-create-group')">+ Create Group</button></div>
+      </div>
+
+      <div class="tabs" id="gr-tabs">
+        <div class="tab active" data-gv="groups">👥 My Groups</div>
+        <div class="tab" data-gv="discuss">💬 Discussions</div>
+        <div class="tab" data-gv="leaderboard">🏆 Leaderboard</div>
+        <div class="tab" data-gv="challenges">⚔️ Challenges</div>
+      </div>
+
+      <div id="gv-groups"><div class="grid-3" id="groups-grid"></div></div>
+
+      <div id="gv-discuss" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">💬 Discussions</span>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-post-disc')">+ Post Question</button>
+          </div>
+          <div id="disc-list"></div>
+        </div>
+      </div>
+
+      <div id="gv-leaderboard" style="display:none">
+        <div class="card"><div class="card-title">🏆 Global Leaderboard</div><div id="lb-list"></div></div>
+      </div>
+
+      <div id="gv-challenges" style="display:none">
+        <div class="card">
+          <div class="card-header"><span class="card-title">⚔️ Live Challenges</span><span class="badge badge-orange">Live</span></div>
+          <div id="challenges-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Group -->
+<div class="modal-overlay" id="modal-create-group">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">👥 Create Group</span><button class="modal-close" onclick="closeModal('modal-create-group')">✕</button></div>
+    <div class="form-group"><label class="form-label">Group Name</label><input id="g-name" class="form-input" placeholder="e.g. OS Study Squad"/></div>
+    <div class="form-group"><label class="form-label">Subject</label>
+      <select id="g-subject" class="form-input"><option>OS</option><option>DBMS</option><option>DSA</option><option>CN</option><option>AI</option><option>Math</option><option>General</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><textarea id="g-desc" class="form-input" placeholder="What will this group study?"></textarea></div>
+    <button class="btn btn-primary btn-full" onclick="createGroup()">Create Group</button>
+  </div>
+</div>
+
+<!-- Post Discussion -->
+<div class="modal-overlay" id="modal-post-disc">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">💬 Post a Question</span><button class="modal-close" onclick="closeModal('modal-post-disc')">✕</button></div>
+    <div class="form-group"><label class="form-label">Question</label><textarea id="d-question" class="form-input" rows="3" placeholder="e.g. What is the difference between semaphore and mutex?"></textarea></div>
+    <div class="form-group"><label class="form-label">Subject</label>
+      <select id="d-subject" class="form-input"><option>OS</option><option>DBMS</option><option>DSA</option><option>CN</option><option>AI</option><option>Math</option></select>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="postDiscussion()">Post Question</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/groups.js"></script>
+<script>initPage('Study Groups').then(user => { if (user) initGroups(); });</script>
+</body>
+</html>
