@@ -77,6 +77,24 @@ function saveUserData(userId, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
+function seedUserData(userId) {
+  const starterData = {
+    notes: [
+      {
+        id: "note_seed_1",
+        title: "Welcome to StudyAI",
+        content: "This is a starter note! You can paste your study material here and use the AI tools.",
+        folder: "General",
+        created: Date.now()
+      }
+    ]
+  };
+  const existing = loadUserData(userId);
+  if (!existing || Object.keys(existing).length === 0) {
+    saveUserData(userId, starterData);
+  }
+}
+
 // ── Users registry ───────────────────────────────────────────
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 function loadUsers() {
