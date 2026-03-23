@@ -89,6 +89,7 @@ function buildSidebar(pageTitle = 'StudyAI') {
           🔥 <span id="tb-streak-num">0</span>
         </div>
         <button class="topbar-btn" onclick="window.location.href='/focus.html'" title="Focus Mode">⚡</button>
+        <button class="topbar-btn" onclick="toggleDarkMode()" title="Toggle Dark Mode" id="dark-mode-btn">🌙</button>
         <button class="topbar-btn" onclick="doLogout()" title="Sign out">🚪</button>
       </div>
     </header>`;
@@ -106,6 +107,12 @@ function buildSidebar(pageTitle = 'StudyAI') {
 
   // Update user info
   updateSidebarUser();
+
+  // Dark mode button text refresh
+  if (document.body.classList.contains('dark-mode')) {
+    const btn = document.getElementById('dark-mode-btn');
+    if (btn) btn.textContent = '☀️';
+  }
 }
 
 /* ── Toggle sidebar (mobile) ── */
@@ -152,3 +159,19 @@ async function initPage(pageTitle) {
   hidePageLoader();
   return user;
 }
+
+/* ════════════════════════════════════════════════════════════
+   DARK MODE CONTROLLER
+   ════════════════════════════════════════════════════════════ */
+window.toggleDarkMode = function() {
+  const isDark = document.body.classList.toggle('dark-mode');
+  localStorage.setItem('darkMode', isDark ? 'on' : 'off');
+  const btn = document.getElementById('dark-mode-btn');
+  if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+}
+
+function initDarkMode() {
+  const isDark = localStorage.getItem('darkMode') === 'on';
+  if (isDark) document.body.classList.add('dark-mode');
+}
+initDarkMode();
