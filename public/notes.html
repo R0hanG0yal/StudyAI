@@ -21,8 +21,8 @@
 
     /* ── Left panel — note list ── */
     .notes-panel {
-      background: rgba(232, 228, 217, .7);
-      border-right: 1px solid rgba(107, 124, 94, .12);
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -31,19 +31,19 @@
 
     .notes-panel-head {
       padding: 14px 16px;
-      border-bottom: 1px solid rgba(107, 124, 94, .1);
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       gap: 8px;
       flex-shrink: 0;
-      background: rgba(255, 255, 255, .3);
+      background: rgba(255, 255, 255, 0.05);
     }
 
     .notes-search {
       flex: 1;
       padding: 7px 12px;
-      background: rgba(247, 231, 247, 0.834);
-      border: 1px solid rgba(107, 124, 94, .15);
+      background: var(--bg-input);
+      border: 1px solid var(--border);
       border-radius: 9px;
       color: var(--text);
       font-size: .82rem;
@@ -78,8 +78,8 @@
     }
 
     .note-item.active {
-      background: linear-gradient(135deg, rgba(107, 124, 94, .12), rgba(163, 177, 138, .1));
-      border-color: rgba(107, 124, 94, .2);
+      background: linear-gradient(135deg, rgba(124, 58, 237, .1), rgba(249, 168, 212, .08));
+      border-color: var(--border);
     }
 
     .note-item-title {
