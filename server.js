@@ -49,13 +49,23 @@ const userDataSchema = new mongoose.Schema({
 });
 const UserData = mongoose.models.UserData || mongoose.model('UserData', userDataSchema);
 
+const sessionSchema = new mongoose.Schema({
+  token  : { type: String, required: true, unique: true },
+  user   : { type: mongoose.Schema.Types.Mixed, required: true },
+  created: { type: Date, default: Date.now, expires: '7d' }, // auto-expires in 7 days
+});
+const Session = mongoose.models.Session || mongoose.model('Session', sessionSchema);
+
 // ── Per-user data helpers (async) ────────────────────────────
 async function loadUserData(userId) {
   if (!MONGO_URI) return {};
   try {
     const doc = await UserData.findOne({ userId });
     return doc ? doc.data : {};
-  } catch { return {}; }
+  } catch (err) {
+    console.error('loadUserData failed for', userId, err);
+    throw new Error('Database error during load');
+  }
 }
 
 async function saveUserData(userId, data) {
@@ -153,7 +163,7 @@ app.post('/api/login', async (req, res) => {
   if (email === 'demo@studyai.com' && password === 'demo1234') {
     const token = makeToken();
     const user  = { userId: 'demo-user', name: 'Alex Johnson', email, course: 'Computer Science' };
-    sessions[token] = user;
+    if (MONGO_URI) { await Session.create({ token, user }); } else { sessions[token] = user; }
     await seedUserData('demo-user');   // auto-seed notes if first time
     return res.json({ token, user });
   }
@@ -167,7 +177,7 @@ app.post('/api/login', async (req, res) => {
 
     const token = makeToken();
     const user  = { userId: u.id, name: u.name, email: u.email, course: u.course };
-    sessions[token] = user;
+    if (MONGO_URI) { await Session.create({ token, user }); } else { sessions[token] = user; }
     res.json({ token, user });
   } catch (err) {
     res.status(500).json({ error: 'Login failed: ' + err.message });
@@ -199,7 +209,7 @@ app.post('/api/signup', async (req, res) => {
 
     const token = makeToken();
     const user  = { userId: newUser.id, name, email, course: newUser.course };
-    sessions[token] = user;
+    if (MONGO_URI) { await Session.create({ token, user }); } else { sessions[token] = user; }
     await seedUserData(newUser.id);   // seed starter notes for new users
     res.json({ token, user });
   } catch (err) {
@@ -208,19 +218,34 @@ app.post('/api/signup', async (req, res) => {
 });
 
 // POST /api/logout
-app.post('/api/logout', (req, res) => {
+app.post('/api/logout', async (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (token) delete sessions[token];
+  if (token) {
+    if (MONGO_URI) await Session.deleteOne({ token });
+    else delete sessions[token];
+  }
   res.json({ ok: true });
 });
 
 // ── Auth middleware for protected routes ─────────────────────
-function auth(req, res, next) {
+async function auth(req, res, next) {
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token || !sessions[token])
-    return res.status(401).json({ error: 'Unauthorized. Please login.' });
-  req.user = sessions[token];
-  next();
+  if (!token) return res.status(401).json({ error: 'Unauthorized. Please login.' });
+
+  if (MONGO_URI) {
+    try {
+      const sess = await Session.findOne({ token });
+      if (!sess) return res.status(401).json({ error: 'Unauthorized. Please login.' });
+      req.user = sess.user;
+      next();
+    } catch (err) {
+      res.status(500).json({ error: 'Session verification failed' });
+    }
+  } else {
+    if (!sessions[token]) return res.status(401).json({ error: 'Unauthorized. Please login.' });
+    req.user = sessions[token];
+    next();
+  }
 }
 
 // ════════════════════════════════════════════════════════════
