@@ -408,19 +408,22 @@ async function suSaveAsNote() {
       fileMeta  : { pages: data.pages, words: data.wordCount, type: data.type },
     };
 
-    if (typeof getOrDefault === 'function' && typeof setData === 'function') {
-      const notes = getOrDefault('notes', []);
-      notes.unshift(newNote);
+    let notes = [];
+    try {
+      const existing = await fetch('/api/data/notes', {
+        headers: { 'Authorization': 'Bearer ' + (getToken?.() || '') },
+      }).then(r => r.json());
+      notes = existing.value || [];
+    } catch (err) {
+      notes = typeof getOrDefault === 'function' ? getOrDefault('notes', []) : [];
+    }
+
+    notes.unshift(newNote);
+
+    if (typeof setData === 'function') {
       setData('notes', notes);
       if (typeof flushSync === 'function') await flushSync();
     } else {
-      const existing = await fetch('/api/data/notes', {
-        headers: { 'Authorization': 'Bearer ' + (getToken?.() || '') },
-      }).then(r => r.json()).catch(() => ({ value: [] }));
-
-      const notes = existing.value || [];
-      notes.unshift(newNote);
-
       await fetch('/api/data/notes', {
         method : 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (getToken?.() || '') },

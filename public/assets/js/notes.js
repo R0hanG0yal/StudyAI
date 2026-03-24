@@ -14,6 +14,21 @@ async function initNotes() {
   await _loadNotes();
   _wireNoteTabs();
 
+  // Highlight editor glow on focus
+  const body = document.getElementById('note-body');
+  const title = document.getElementById('note-title');
+  const panel = document.getElementById('editor-panel');
+  if (panel) {
+    if (body) {
+      body.addEventListener('focus', () => panel.classList.add('focused'));
+      body.addEventListener('blur', () => panel.classList.remove('focused'));
+    }
+    if (title) {
+      title.addEventListener('focus', () => panel.classList.add('focused'));
+      title.addEventListener('blur', () => panel.classList.remove('focused'));
+    }
+  }
+
   // Open first note or show empty state
   if (NS.notes.length) _openNote(NS.notes[0].id);
   else _showEmptyEditor();
@@ -168,11 +183,38 @@ async function deleteNote() {
 /* ════════════════════════════════════════════════════════════
    AUTO-SAVE
    ════════════════════════════════════════════════════════════ */
-function onNoteInput() {
+async function onNoteInput() {
   _updateCounts();
-  _setSaveStatus('Unsaved…');
+  _setSaveStatus('Saving…');
+
+  const titleInput = document.getElementById('note-title');
+  const bodyInput  = document.getElementById('note-body');
+  const title = titleInput?.value.trim() || '';
+  const content = bodyInput?.value || '';
+
+  // Auto-create note if typing on empty template workspace!
+  if (!NS.id && (title || content)) {
+    const n = {
+      id        : genId(),
+      title     : title || (content ? truncate(content.split('\n')[0], 25) : 'Untitled Note'),
+      content   : content,
+      folder    : document.getElementById('note-folder')?.value || 'General',
+      tags      : [], pinned: false, bookmarked: false,
+      created   : Date.now(), updated: Date.now(),
+    };
+    NS.notes.unshift(n);
+    NS.id = n.id;
+    await _saveAllNotes();
+    _buildNoteList();
+    _populateFolderFilter();
+    _setSaveStatus('Saved ✓');
+    return;
+  }
+
   clearTimeout(NS.saveTimer);
-  NS.saveTimer = setTimeout(saveNote, 900);
+  if (NS.id) {
+    NS.saveTimer = setTimeout(saveNote, 800);
+  }
 }
 
 async function saveNote() {
