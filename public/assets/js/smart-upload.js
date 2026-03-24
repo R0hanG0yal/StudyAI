@@ -393,11 +393,6 @@ async function suSaveAsNote() {
   if (btn) { btn.textContent = '⏳ Saving…'; btn.disabled = true; }
 
   try {
-    const existing = await fetch('/api/data/notes', {
-      headers: { 'Authorization': 'Bearer ' + (getToken?.() || '') },
-    }).then(r => r.json()).catch(() => ({ value: [] }));
-
-    const notes  = existing.value || [];
     const now    = Date.now();
     const newNote = {
       id        : now.toString(36) + Math.random().toString(36).slice(2, 7),
@@ -412,13 +407,26 @@ async function suSaveAsNote() {
       source    : data.type,
       fileMeta  : { pages: data.pages, words: data.wordCount, type: data.type },
     };
-    notes.unshift(newNote);
 
-    await fetch('/api/data/notes', {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (getToken?.() || '') },
-      body   : JSON.stringify({ value: notes }),
-    });
+    if (typeof getOrDefault === 'function' && typeof setData === 'function') {
+      const notes = getOrDefault('notes', []);
+      notes.unshift(newNote);
+      setData('notes', notes);
+      if (typeof flushSync === 'function') await flushSync();
+    } else {
+      const existing = await fetch('/api/data/notes', {
+        headers: { 'Authorization': 'Bearer ' + (getToken?.() || '') },
+      }).then(r => r.json()).catch(() => ({ value: [] }));
+
+      const notes = existing.value || [];
+      notes.unshift(newNote);
+
+      await fetch('/api/data/notes', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (getToken?.() || '') },
+        body   : JSON.stringify({ value: notes }),
+      });
+    }
 
     if (typeof window._suOnSuccess === 'function') {
       window._suOnSuccess({ ...data, noteId: newNote.id, note: newNote });

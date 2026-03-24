@@ -150,6 +150,11 @@ async function initPage(pageTitle) {
   const user = await requireAuth();
   if (!user) return; // redirected to login
 
+  // Load data cache from server
+  if (typeof loadAllData === 'function') {
+    await loadAllData();
+  }
+
   // Build sidebar + topbar
   buildSidebar(pageTitle);
 

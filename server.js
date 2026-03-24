@@ -157,7 +157,8 @@ function makeToken() {
 // POST /api/login
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Missing fields' });
+  const cleanEmail = email ? email.trim().toLowerCase() : '';
+  if (!cleanEmail || !password) return res.status(400).json({ error: 'Missing fields' });
 
   // Demo account
   if (email === 'demo@studyai.com' && password === 'demo1234') {
@@ -170,7 +171,7 @@ app.post('/api/login', async (req, res) => {
 
   try {
     const users = await loadUsers();
-    const u     = users.find(x => x.email === email);
+    const u     = users.find(x => x.email && x.email.toLowerCase() === cleanEmail);
     if (!u) return res.status(401).json({ error: 'No account found. Sign up first.' });
     if (u.password !== Buffer.from(password).toString('base64'))
       return res.status(401).json({ error: 'Incorrect password.' });
@@ -187,20 +188,21 @@ app.post('/api/login', async (req, res) => {
 // POST /api/signup
 app.post('/api/signup', async (req, res) => {
   const { name, email, password, course } = req.body;
-  if (!name || !email || !password)
+  const cleanEmail = email ? email.trim().toLowerCase() : '';
+  if (!name || !cleanEmail || !password)
     return res.status(400).json({ error: 'Fill all required fields.' });
   if (password.length < 8)
     return res.status(400).json({ error: 'Password must be at least 8 characters.' });
 
   try {
     const users = await loadUsers();
-    if (users.find(u => u.email === email))
+    if (users.find(u => u.email && u.email.toLowerCase() === cleanEmail))
       return res.status(409).json({ error: 'Email already registered.' });
 
     const newUser = {
       id      : 'u_' + Date.now(),
       name,
-      email,
+      email   : cleanEmail,
       password: Buffer.from(password).toString('base64'),
       course  : course || 'General',
       created : Date.now(),
