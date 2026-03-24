@@ -108,7 +108,7 @@ function _noDataMsg(canvas, msg='No data for this period') {
   canvas.style.height = '140px';
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle    = 'rgba(255,255,255,.18)';
-  ctx.font         = '13px Plus Jakarta Sans, sans-serif';
+  ctx.font         = '13px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(msg, canvas.width/2, 70);

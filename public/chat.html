@@ -17,8 +17,8 @@
 
     /* ── Sessions sidebar ── */
     .chat-sidebar {
-      background: rgba(232,228,217,.7);
-      border-right: 1px solid rgba(107,124,94,.12);
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -52,8 +52,8 @@
     }
     .session-item:hover { background: rgba(124, 58, 237, .06); }
     .session-item.active {
-      background: linear-gradient(135deg,rgba(107,124,94,.12),rgba(163,177,138,.1));
-      border-color: rgba(107,124,94,.2);
+      background: linear-gradient(135deg,rgba(107,124,94,.1),rgba(163,177,138,.08));
+      border-color: var(--border);
     }
     .session-title { font-size:.82rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .session-meta  { font-size:.68rem; color:var(--text-muted); margin-top:3px; }
@@ -68,12 +68,12 @@
 
     .chat-toolbar {
       padding: 10px 16px;
-      border-bottom: 1px solid rgba(107,124,94,.1);
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       gap: 10px;
       flex-shrink: 0;
-      background: rgba(255,255,255,.3);
+      background: transparent;
       flex-wrap: wrap;
     }
 
@@ -143,16 +143,16 @@
     }
     .suggestion-chip {
       padding: 5px 12px;
-      background: rgba(107,124,94,.08);
-      border: 1px solid rgba(107,124,94,.15);
+      background: rgba(124, 58, 237, 0.08);
+      border: 1px solid rgba(124, 58, 237, 0.15);
       border-radius: 100px;
       font-size: .74rem;
       cursor: pointer;
-      color: #5a7247;
+      color: var(--purple);
       transition: all .15s;
       white-space: nowrap;
     }
-    .suggestion-chip:hover { background: rgba(107,124,94,.15); transform: translateY(-1px); }
+    .suggestion-chip:hover { background: rgba(124, 58, 237, 0.15); transform: translateY(-1px); }
 
     /* Input area */
     .chat-input-area {
@@ -164,15 +164,15 @@
       display: flex;
       gap: 9px;
       align-items: flex-end;
-      background: rgba(255,255,255,.45);
-      border: 1px solid rgba(107,124,94,.15);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 14px;
       padding: 9px 12px;
       transition: border-color .18s;
     }
     .chat-input-box:focus-within {
-      border-color: rgba(107,124,94,.4);
-      box-shadow: 0 0 0 3px rgba(107,124,94,.08);
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
     }
     #chat-input {
       flex: 1;
@@ -205,11 +205,11 @@
     /* Context badge */
     .ctx-badge {
       padding: 4px 10px;
-      background: rgba(107,124,94,.08);
-      border: 1px solid rgba(107,124,94,.15);
+      background: rgba(124, 58, 237, 0.08);
+      border: 1px solid rgba(124, 58, 237, 0.15);
       border-radius: 100px;
       font-size: .72rem;
-      color: #5a7247;
+      color: var(--purple);
       white-space: nowrap;
     }
 

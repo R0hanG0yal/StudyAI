@@ -51,7 +51,7 @@ function openSmartUpload({ onSuccess, pageHint = 'notes' } = {}) {
   <!-- Header -->
   <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
     <div>
-      <div style="font-family:'Syne',var(--font-display,sans-serif);font-weight:800;font-size:1.05rem;
+      <div style="font-family:inherit;font-weight:800;font-size:1.05rem;
         background:linear-gradient(135deg,#667eea,#f093fb);-webkit-background-clip:text;
         -webkit-text-fill-color:transparent;background-clip:text;margin-bottom:3px">
         🧠 Smart File Upload

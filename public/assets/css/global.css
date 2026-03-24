@@ -4,8 +4,7 @@
    Used by: every page
    ============================================================ */
 
-/* ── Google Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* No external fonts — uses Meta's system font stack for speed & consistency */
 
 /* ════════════════════════════════════════════════════════════
    CSS VARIABLES - PASTEL THEME
@@ -54,42 +53,42 @@
   --shadow      : 0 8px 32px rgba(180, 160, 210, 0.08);
   --shadow-glow : 0 0 30px rgba(124, 58, 237, 0.15);
 
-  /* Fonts */
-  --font        : 'Plus Jakarta Sans', sans-serif;
-  --font-display: 'Syne', sans-serif;
-  --font-mono   : 'JetBrains Mono', monospace;
+  /* Fonts — Meta system font stack (single consistent font everywhere) */
+  --font        : -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono   : 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* ════════════════════════════════════════════════════════════
    DARK MODE OVERRIDES
    ════════════════════════════════════════════════════════════ */
 body.dark-mode {
-  --bg-primary  : #090314; /* Deep purple backing */
-  --bg-secondary: #0f071e;
-  --bg-card     : rgba(22, 14, 38, 0.65); /* Glassmorphic Dark */
-  --bg-card-hover: rgba(30, 20, 50, 0.82);
-  --bg-input    : rgba(25, 18, 42, 0.85);
+  --bg-primary  : #0b141a; /* WhatsApp dark background */
+  --bg-secondary: #121b22;
+  --bg-card     : rgba(18, 27, 34, 0.82); /* Dark glassmorphic */
+  --bg-card-hover: rgba(26, 38, 48, 0.95);
+  --bg-input    : rgba(32, 44, 51, 0.9);
 
-  --border      : rgba(180, 160, 220, 0.12);
-  --border-focus: #c084fc;
+  --border      : rgba(255,255,255,0.08);
+  --border-focus: #128c7e; /* Whatsapp Green for focus */
 
-  --text        : #e5def4; /* Light text */
-  --text-dim    : #b0a5c4;
-  --text-muted  : #7e7392;
+  --text        : #f1f5f9; 
+  --text-dim    : #94a3b8; 
+  --text-muted  : #64748b; 
 
   --sidebar-w   : 240px;
   --topbar-h    : 60px;
 }
 
-body.dark-mode .sidebar { background: rgba(15, 7, 30, 0.8); }
-body.dark-mode .topbar { background: rgba(15, 7, 30, 0.75); }
-body.dark-mode .nav-item:hover { background: rgba(255,255,255,0.05); }
-body.dark-mode .tb-btn { background: rgba(255,255,255, 0.04); }
-body.dark-mode .tb-btn:hover { background: rgba(192, 132, 252, 0.1); }
-body.dark-mode .bubble-ai { background: rgba(25, 18, 42, 0.65); }
-body.dark-mode .notes-panel { background: rgba(15, 7, 30, 0.25); }
-body.dark-mode .chat-sidebar { background: rgba(15, 7, 30, 0.25); }
-body.dark-mode .modal { background: #0f071e; border-color: rgba(255,255,255,0.05); }
+body.dark-mode .sidebar { background: rgba(18, 27, 34, 0.95); }
+body.dark-mode .topbar { background: rgba(18, 27, 34, 0.85); }
+body.dark-mode .nav-item:hover { background: rgba(255,255,255,0.04); }
+body.dark-mode .tb-btn { background: rgba(255,255,255, 0.03); }
+body.dark-mode .tb-btn:hover { background: rgba(255, 255, 255, 0.08); }
+body.dark-mode .bubble-ai { background: rgba(32, 44, 51, 0.7); border-color: rgba(255,255,255,0.05); }
+body.dark-mode .notes-panel { background: rgba(18, 27, 34, 0.65); }
+body.dark-mode .chat-sidebar { background: rgba(18, 27, 34, 0.7); }
+body.dark-mode .modal { background: #121b22; border-color: rgba(255,255,255,0.08); }
 
 /* ════════════════════════════════════════════════════════════
    RESET & BASE

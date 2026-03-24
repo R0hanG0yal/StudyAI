@@ -40,7 +40,7 @@ function showPDFUploader({ onSuccess, label = '' }) {
       <!-- Header -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
         <div>
-          <div style="font-family:'Syne',var(--font-display,sans-serif);font-weight:800;font-size:1.05rem;
+          <div style="font-family:inherit;font-weight:800;font-size:1.05rem;
                background:linear-gradient(135deg,#667eea,#f093fb);
                -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
             📄 Upload PDF

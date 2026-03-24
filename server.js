@@ -3,10 +3,10 @@
    File: server.js
 
    Features:
-   - Proxies Google Gemini API (avoids browser CORS)
+   - Proxies Groq API (avoids browser CORS)
    - Serves the frontend static files
-   - User session management (in-memory + JSON file)
-   - Per-user data persistence (JSON files)
+   - User session management (in-memory)
+   - Per-user data persistence (MongoDB Atlas)
    - All AI endpoints: chat, summary, quiz, flashcards etc.
 
    Run:  node server.js
@@ -18,11 +18,88 @@ const express  = require('express');
 const cors     = require('cors');
 const path     = require('path');
 const fs       = require('fs');
-const Groq = require('groq-sdk');
+const Groq     = require('groq-sdk');
 const multer   = require('multer');
 const pdfParse = require('pdf-parse');
 const mammoth  = require('mammoth');
+const mongoose = require('mongoose');
 const { execFile } = require('child_process');
+
+// ── MongoDB connection ────────────────────────────────────────
+const MONGO_URI = process.env.MONGO_URI || '';
+if (!MONGO_URI) {
+  console.error('\n  ❌  MONGO_URI is not set in .env!  Data will NOT be saved.');
+  console.error('     Create a free cluster at https://cloud.mongodb.com and add MONGO_URI to .env\n');
+}
+
+// ── Mongoose Schemas ─────────────────────────────────────────
+const userSchema = new mongoose.Schema({
+  id      : { type: String, required: true, unique: true },
+  name    : String,
+  email   : { type: String, required: true, unique: true },
+  password: String,   // base64 encoded (same as before)
+  course  : String,
+  created : Number,
+});
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+
+const userDataSchema = new mongoose.Schema({
+  userId : { type: String, required: true, unique: true },
+  data   : { type: mongoose.Schema.Types.Mixed, default: {} },
+});
+const UserData = mongoose.models.UserData || mongoose.model('UserData', userDataSchema);
+
+// ── Per-user data helpers (async) ────────────────────────────
+async function loadUserData(userId) {
+  if (!MONGO_URI) return {};
+  try {
+    const doc = await UserData.findOne({ userId });
+    return doc ? doc.data : {};
+  } catch { return {}; }
+}
+
+async function saveUserData(userId, data) {
+  if (!MONGO_URI) return;
+  await UserData.findOneAndUpdate(
+    { userId },
+    { $set: { data } },
+    { upsert: true, new: true }
+  );
+}
+
+async function seedUserData(userId) {
+  if (!MONGO_URI) return;
+  const existing = await loadUserData(userId);
+  if (!existing || Object.keys(existing).length === 0) {
+    await saveUserData(userId, {
+      notes: [
+        {
+          id: 'note_seed_1',
+          title: 'Welcome to StudyAI',
+          content: 'This is a starter note! You can paste your study material here and use the AI tools.',
+          folder: 'General',
+          created: Date.now(),
+        },
+      ],
+    });
+  }
+}
+
+// ── Users registry helpers (async) ───────────────────────────
+async function loadUsers() {
+  if (!MONGO_URI) return [];
+  try { return await User.find({}).lean(); }
+  catch { return []; }
+}
+
+async function saveUser(userObj) {
+  if (!MONGO_URI) return;
+  await User.findOneAndUpdate(
+    { id: userObj.id },
+    { $set: userObj },
+    { upsert: true, new: true }
+  );
+}
 
 // ── Multer — universal file upload (images, PDFs, DOCX), 25MB max ──
 const ALLOWED_TYPES = new Set([
@@ -56,56 +133,6 @@ app.use(express.json({ limit: '10mb' }));
 // Serve frontend from /public folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── Data directory (stores per-user JSON files) ─────────────
-const DATA_DIR = path.join(__dirname, 'data');
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-
-// ── Per-user data helpers ────────────────────────────────────
-function getUserFile(userId) {
-  return path.join(DATA_DIR, `user_${userId.replace(/[^a-zA-Z0-9]/g,'_')}.json`);
-}
-
-function loadUserData(userId) {
-  const file = getUserFile(userId);
-  if (!fs.existsSync(file)) return {};
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
-  catch { return {}; }
-}
-
-function saveUserData(userId, data) {
-  const file = getUserFile(userId);
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
-}
-
-function seedUserData(userId) {
-  const starterData = {
-    notes: [
-      {
-        id: "note_seed_1",
-        title: "Welcome to StudyAI",
-        content: "This is a starter note! You can paste your study material here and use the AI tools.",
-        folder: "General",
-        created: Date.now()
-      }
-    ]
-  };
-  const existing = loadUserData(userId);
-  if (!existing || Object.keys(existing).length === 0) {
-    saveUserData(userId, starterData);
-  }
-}
-
-// ── Users registry ───────────────────────────────────────────
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-function loadUsers() {
-  if (!fs.existsSync(USERS_FILE)) return [];
-  try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); }
-  catch { return []; }
-}
-function saveUsers(users) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-}
-
 // ── In-memory sessions ───────────────────────────────────────
 // key: sessionToken → { userId, name, email, course }
 const sessions = {};
@@ -118,7 +145,7 @@ function makeToken() {
 // ════════════════════════════════════════════════════════════
 
 // POST /api/login
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Missing fields' });
 
@@ -127,50 +154,57 @@ app.post('/api/login', (req, res) => {
     const token = makeToken();
     const user  = { userId: 'demo-user', name: 'Alex Johnson', email, course: 'Computer Science' };
     sessions[token] = user;
-    seedUserData('demo-user');   // auto-seed notes if first time
+    await seedUserData('demo-user');   // auto-seed notes if first time
     return res.json({ token, user });
   }
 
-  const users = loadUsers();
-  const u     = users.find(x => x.email === email);
-  if (!u) return res.status(401).json({ error: 'No account found. Sign up first.' });
-  if (u.password !== Buffer.from(password).toString('base64'))
-    return res.status(401).json({ error: 'Incorrect password.' });
+  try {
+    const users = await loadUsers();
+    const u     = users.find(x => x.email === email);
+    if (!u) return res.status(401).json({ error: 'No account found. Sign up first.' });
+    if (u.password !== Buffer.from(password).toString('base64'))
+      return res.status(401).json({ error: 'Incorrect password.' });
 
-  const token = makeToken();
-  const user  = { userId: u.id, name: u.name, email: u.email, course: u.course };
-  sessions[token] = user;
-  res.json({ token, user });
+    const token = makeToken();
+    const user  = { userId: u.id, name: u.name, email: u.email, course: u.course };
+    sessions[token] = user;
+    res.json({ token, user });
+  } catch (err) {
+    res.status(500).json({ error: 'Login failed: ' + err.message });
+  }
 });
 
 // POST /api/signup
-app.post('/api/signup', (req, res) => {
+app.post('/api/signup', async (req, res) => {
   const { name, email, password, course } = req.body;
   if (!name || !email || !password)
     return res.status(400).json({ error: 'Fill all required fields.' });
   if (password.length < 8)
     return res.status(400).json({ error: 'Password must be at least 8 characters.' });
 
-  const users = loadUsers();
-  if (users.find(u => u.email === email))
-    return res.status(409).json({ error: 'Email already registered.' });
+  try {
+    const users = await loadUsers();
+    if (users.find(u => u.email === email))
+      return res.status(409).json({ error: 'Email already registered.' });
 
-  const newUser = {
-    id      : 'u_' + Date.now(),
-    name,
-    email,
-    password: Buffer.from(password).toString('base64'),
-    course  : course || 'General',
-    created : Date.now(),
-  };
-  users.push(newUser);
-  saveUsers(users);
+    const newUser = {
+      id      : 'u_' + Date.now(),
+      name,
+      email,
+      password: Buffer.from(password).toString('base64'),
+      course  : course || 'General',
+      created : Date.now(),
+    };
+    await saveUser(newUser);
 
-  const token = makeToken();
-  const user  = { userId: newUser.id, name, email, course: newUser.course };
-  sessions[token] = user;
-  seedUserData(newUser.id);   // seed starter notes for new users
-  res.json({ token, user });
+    const token = makeToken();
+    const user  = { userId: newUser.id, name, email, course: newUser.course };
+    sessions[token] = user;
+    await seedUserData(newUser.id);   // seed starter notes for new users
+    res.json({ token, user });
+  } catch (err) {
+    res.status(500).json({ error: 'Signup failed: ' + err.message });
+  }
 });
 
 // POST /api/logout
@@ -194,36 +228,47 @@ function auth(req, res, next) {
 // ════════════════════════════════════════════════════════════
 
 // GET /api/data  → returns all user data
-app.get('/api/data', auth, (req, res) => {
-  res.json(loadUserData(req.user.userId));
+app.get('/api/data', auth, async (req, res) => {
+  try {
+    const data = await loadUserData(req.user.userId);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // POST /api/data  → save/merge user data
-app.post('/api/data', auth, (req, res) => {
-  const current = loadUserData(req.user.userId);
-  const updated = { ...current, ...req.body };
-  saveUserData(req.user.userId, updated);
-  res.json({ ok: true });
+app.post('/api/data', auth, async (req, res) => {
+  try {
+    const current = await loadUserData(req.user.userId);
+    const updated = { ...current, ...req.body };
+    await saveUserData(req.user.userId, updated);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // GET /api/data/:key  → get one key
-app.get('/api/data/:key', auth, (req, res) => {
-  const data = loadUserData(req.user.userId);
-  res.json({ value: data[req.params.key] ?? null });
+app.get('/api/data/:key', auth, async (req, res) => {
+  try {
+    const data = await loadUserData(req.user.userId);
+    res.json({ value: data[req.params.key] ?? null });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // POST /api/data/:key  → set one key
-app.post('/api/data/:key', auth, (req, res) => {
-  const data = loadUserData(req.user.userId);
-  data[req.params.key] = req.body.value;
-  saveUserData(req.user.userId, data);
-  res.json({ ok: true });
+app.post('/api/data/:key', auth, async (req, res) => {
+  try {
+    const data = await loadUserData(req.user.userId);
+    data[req.params.key] = req.body.value;
+    await saveUserData(req.user.userId, data);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // DELETE /api/data  → clear all user data
-app.delete('/api/data', auth, (req, res) => {
-  saveUserData(req.user.userId, {});
-  res.json({ ok: true });
+app.delete('/api/data', auth, async (req, res) => {
+  try {
+    await saveUserData(req.user.userId, {});
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ════════════════════════════════════════════════════════════
@@ -1071,24 +1116,72 @@ app.get('*splat', (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════
-//  START SERVER
+//  KEEP-ALIVE PING  — prevents Render free-tier sleep
 // ════════════════════════════════════════════════════════════
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('');
-  console.log('  ╔══════════════════════════════════════╗');
-  console.log('  ║   🧠  StudyAI Backend Running!       ║');
-  console.log(`  ║   http://localhost:${PORT}              ║`);
-  console.log('  ║                                      ║');
-  console.log('  ║   Demo: demo@studyai.com             ║');
-  console.log('  ║         demo1234                     ║');
-  console.log('  ╚══════════════════════════════════════╝');
-  console.log('');
 
-  if (!process.env.GROQ_API_KEY) {
-    console.warn('  ⚠️  WARNING: GROQ_API_KEY not set in .env');
-    console.warn('     AI features will not work until you add it.');
-    console.warn('     Create a .env file with: GROQ_API_KEY=your_key_here\n');
-  } else {
-    console.log('  ✅ Gemini API key loaded\n');
-  }
+// Simple health-check endpoint (also used by self-ping)
+app.get('/api/ping', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
 });
+
+// ════════════════════════════════════════════════════════════
+//  START SERVER  (connects MongoDB first, then HTTP)
+// ════════════════════════════════════════════════════════════
+async function startServer() {
+  if (MONGO_URI) {
+    try {
+      await mongoose.connect(MONGO_URI, {
+        serverSelectionTimeoutMS: 5000,
+      });
+      console.log('  ✅ MongoDB connected');
+    } catch (err) {
+      console.error('  ❌ MongoDB connection failed:', err.message);
+      console.error('     Check your MONGO_URI in .env  — app will start but data will NOT persist.\n');
+    }
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('');
+    console.log('  ╔══════════════════════════════════════╗');
+    console.log('  ║   🧠  StudyAI Backend Running!       ║');
+    console.log(`  ║   http://localhost:${PORT}              ║`);
+    console.log('  ║                                      ║');
+    console.log('  ║   Demo: demo@studyai.com             ║');
+    console.log('  ║         demo1234                     ║');
+    console.log('  ╚══════════════════════════════════════╝');
+    console.log('');
+
+    if (!process.env.GROQ_API_KEY) {
+      console.warn('  ⚠️  WARNING: GROQ_API_KEY not set in .env');
+      console.warn('     AI features will not work until you add it.');
+      console.warn('     Create a .env file with: GROQ_API_KEY=your_key_here\n');
+    } else {
+      console.log('  ✅ Groq API key loaded\n');
+    }
+
+    if (!MONGO_URI) {
+      console.warn('  ⚠️  WARNING: MONGO_URI not set — user data will NOT be saved!');
+      console.warn('     Get a free MongoDB Atlas cluster at https://cloud.mongodb.com\n');
+    }
+
+    // ── Self-ping every 14 minutes to keep Render free-tier awake ──
+    const RENDER_URL = process.env.RENDER_EXTERNAL_URL || '';
+    if (RENDER_URL) {
+      const PING_INTERVAL = 14 * 60 * 1000; // 14 minutes
+      setInterval(async () => {
+        try {
+          const pingUrl = `${RENDER_URL}/api/ping`;
+          const res = await fetch(pingUrl);
+          console.log(`  💓 Self-ping OK [${new Date().toLocaleTimeString()}] → ${res.status}`);
+        } catch (err) {
+          console.warn(`  ⚠️  Self-ping failed: ${err.message}`);
+        }
+      }, PING_INTERVAL);
+      console.log(`  💓 Keep-alive self-ping enabled → ${RENDER_URL}/api/ping (every 14 min)\n`);
+    } else {
+      console.log('  ℹ️  Self-ping disabled (RENDER_EXTERNAL_URL not set — OK for local dev)\n');
+    }
+  });
+}
+
+startServer();
