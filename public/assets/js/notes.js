@@ -20,8 +20,9 @@ async function initNotes() {
 }
 
 /* ── Load notes from server ── */
-async function _loadNotes() {
-  const data = await apiGet('/data').catch(() => ({}));
+async function _loadNotes(forceReload = false) {
+  if (forceReload && typeof loadAllData === 'function') await loadAllData();
+  const data = typeof getData === 'function' && !forceReload ? { notes: Notes.getAll() } : await apiGet('/data').catch(() => ({}));
   NS.notes = (data.notes || []).sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
@@ -203,9 +204,13 @@ async function saveNote() {
 }
 
 async function _saveAllNotes() {
-  await apiPost('/data/notes', { value: NS.notes }).catch(e => {
-    console.error('Save failed:', e);
-  });
+  if (typeof setData === 'function') {
+    setData('notes', NS.notes);
+  } else {
+    await apiPost('/data/notes', { value: NS.notes }).catch(e => {
+      console.error('Save failed:', e);
+    });
+  }
 }
 
 /* ── Counts ── */

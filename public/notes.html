@@ -65,9 +65,9 @@
         <div class="tab" data-tab-group="notes" data-tab-target="bookmarks" data-panel-group="notes-panels">🔖 Bookmarks</div>
       </div>
       <div class="page-header-right">
-          <button class="btn btn-secondary btn-sm" id="btn-txt-upload" onclick="triggerUpload()">📁 .txt/.md</button>
-          <button class="btn btn-secondary btn-sm" id="btn-smart-upload" onclick="openSmartUpload({pageHint:'notes'})">🧠 AI Read File</button>
-          <button class="btn btn-primary btn-sm" id="btn-new-note" onclick="createNote()">+ New Note</button>
+          <button class="btn btn-secondary btn-sm" id="btn-txt-upload">📁 .txt/.md</button>
+          <button class="btn btn-secondary btn-sm" id="btn-smart-upload">🧠 AI Read File</button>
+          <button class="btn btn-primary btn-sm" id="btn-new-note">+ New Note</button>
         </div>
     </div>
 
@@ -164,6 +164,7 @@
 <script src="assets/js/utils.js"></script>
 <script src="assets/js/sidebar.js"></script>
 <script src="assets/js/storage.js"></script>
+<script src="assets/js/subjects.js"></script>
 <script src="assets/js/smart-upload.js"></script>
 <script src="assets/js/notes.js"></script>
 <script src="assets/js/events.js"></script>
@@ -195,7 +196,7 @@
     document.getElementById('btn-new-note')?.addEventListener('click', createNote);
     document.getElementById('btn-txt-upload')?.addEventListener('click', triggerUpload);
     document.getElementById('btn-smart-upload')?.addEventListener('click', () =>
-      openSmartUpload({ pageHint:'notes', onSuccess: r => _loadNotes().then(() => { if (r.noteId) _openNote(r.noteId); }) })
+      openSmartUpload({ pageHint:'notes', onSuccess: r => _loadNotes(true).then(() => { if (r.noteId) _openNote(r.noteId); }) })
     );
 
     // Note body

@@ -417,7 +417,7 @@ function offsetDate(n) { return addDays(n); }
 
 // ── TOAST ─────────────────────────────────────────────────────
 function showToast(msg, type = 'info', dur = 3000) {
-  const c   = document.getElementById('toasts');
+  const c   = document.getElementById('toast-container') || document.getElementById('toasts');
   if (!c) return;
   const el  = document.createElement('div');
   const cls = { success: 'ts', error: 'te', info: 'ti', warning: 'tw' }[type] || 'ti';

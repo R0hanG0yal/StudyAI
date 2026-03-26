@@ -1,180 +1,239 @@
 /* ============================================================
-   STUDYAI — ACHIEVEMENTS
-   File: public/assets/js/achievements.js
+   STUDYAI — achievements.js  (Part 7)
+   Full achievements engine:
+   - 30 real achievements with actual trigger conditions
+   - XP system with 10 levels
+   - Pop-up notifications when unlocked
+   - Persistent storage in user data
    ============================================================ */
-'use strict';
 
-const ACH_DEFS = [
-  {id:'a1',  icon:'🚀', name:'First Launch',    desc:'Opened StudyAI.',             xp:10,  cat:'Getting Started', cond:d=>true},
-  {id:'a2',  icon:'📝', name:'Note Taker',      desc:'Created your first note.',     xp:20,  cat:'Getting Started', cond:d=>(d.notes||[]).length>=1},
-  {id:'a3',  icon:'🎯', name:'Quiz Starter',    desc:'Completed your first quiz.',   xp:30,  cat:'Quizzes',         cond:d=>(d.quizResults||[]).length>=1},
-  {id:'a4',  icon:'🃏', name:'Card Collector',  desc:'Generated 5+ flashcards.',     xp:25,  cat:'Flashcards',      cond:d=>(d.flashcards||[]).length>=5},
-  {id:'a5',  icon:'🔥', name:'On Fire',         desc:'Maintained 7-day streak.',     xp:50,  cat:'Streaks',         cond:d=>(d.streak||{current:0}).current>=7},
-  {id:'a6',  icon:'📄', name:'Summarizer',      desc:'Generated first AI summary.',  xp:25,  cat:'AI Tools',        cond:d=>(d.summaries||[]).length>=1},
-  {id:'a7',  icon:'⚡', name:'Focus Master',    desc:'Completed a Pomodoro.',        xp:35,  cat:'Focus',           cond:d=>(d.sessions||[]).some(s=>s.type==='focus'&&s.duration>=25)},
-  {id:'a8',  icon:'📅', name:'Planner Pro',     desc:'Added 5+ tasks.',              xp:30,  cat:'Planning',        cond:d=>(d.tasks||[]).length>=5},
-  {id:'a9',  icon:'🏆', name:'Quiz Champion',   desc:'Scored 90%+ on any quiz.',     xp:75,  cat:'Quizzes',         cond:d=>(d.quizResults||[]).some(r=>r.pct>=90)},
-  {id:'a10', icon:'📚', name:'Bookworm',        desc:'Created 10 study notes.',      xp:60,  cat:'Notes',           cond:d=>(d.notes||[]).length>=10},
-  {id:'a11', icon:'🔄', name:'Reviser',         desc:'Completed 10 revisions.',      xp:70,  cat:'Revision',        cond:d=>(d.revisions||[]).filter(r=>r.done).length>=10},
-  {id:'a12', icon:'🌙', name:'Night Owl',       desc:'Used One-Night Mode.',         xp:50,  cat:'AI Tools',        cond:d=>false},
-  {id:'a13', icon:'🔥', name:'Inferno',         desc:'30-day study streak.',         xp:150, cat:'Streaks',         cond:d=>(d.streak||{current:0}).current>=30},
-  {id:'a14', icon:'👥', name:'Team Player',     desc:'Created a study group.',       xp:40,  cat:'Social',          cond:d=>(d.groups||[]).length>=1},
-  {id:'a15', icon:'💯', name:'Perfect Score',   desc:'Got 100% on a quiz.',          xp:100, cat:'Quizzes',         cond:d=>(d.quizResults||[]).some(r=>r.pct===100)},
-  {id:'a16', icon:'🧠', name:'Know-It-All',    desc:'Studied all 6 subjects.',      xp:120, cat:'Special',         cond:d=>{const s=new Set((d.notes||[]).map(n=>n.folder));return ['OS','DBMS','DSA','CN','AI','Math'].every(x=>s.has(x));}},
-  {id:'a17', icon:'⏱️', name:'Century Club',    desc:'100+ hours of study time.',    xp:200, cat:'Special',         cond:d=>(d.sessions||[]).reduce((s,x)=>s+x.duration,0)>=6000},
-  {id:'a18', icon:'🌟', name:'All-Rounder',     desc:'Used 8+ different features.',  xp:80,  cat:'Special',         cond:d=>{const has=[...((d.notes||[]).length>0?['notes']:[]),...((d.quizResults||[]).length>0?['quiz']:[]),...((d.flashcards||[]).length>0?['fc']:[]),...((d.summaries||[]).length>0?['sum']:[]),...((d.sessions||[]).length>0?['sess']:[]),...((d.revisions||[]).length>0?['rev']:[]),...((d.tasks||[]).length>0?['task']:[]),...((d.groups||[]).length>0?['group']:[])];return has.length>=6;}},
+// ── Achievement definitions ───────────────────────────────
+const ACHIEVEMENTS_DEF = [
+  // Notes
+  { id:'note_first',   cat:'Notes',    icon:'📝', name:'First Note',        desc:'Create your first note',              xp:10,  cond: d => (d.notes||[]).length >= 1 },
+  { id:'note_5',       cat:'Notes',    icon:'📚', name:'Note Taker',        desc:'Create 5 notes',                      xp:20,  cond: d => (d.notes||[]).length >= 5 },
+  { id:'note_20',      cat:'Notes',    icon:'🗒️', name:'Prolific Writer',   desc:'Create 20 notes',                     xp:50,  cond: d => (d.notes||[]).length >= 20 },
+  { id:'note_50',      cat:'Notes',    icon:'📖', name:'Knowledge Base',    desc:'Create 50 notes',                     xp:100, cond: d => (d.notes||[]).length >= 50 },
+
+  // Quizzes
+  { id:'quiz_first',   cat:'Quizzes',  icon:'🎯', name:'First Quiz',        desc:'Complete your first quiz',            xp:15,  cond: d => (d.quizzes||[]).length >= 1 },
+  { id:'quiz_10',      cat:'Quizzes',  icon:'🏹', name:'Quiz Enthusiast',   desc:'Complete 10 quizzes',                 xp:40,  cond: d => (d.quizzes||[]).length >= 10 },
+  { id:'quiz_perfect', cat:'Quizzes',  icon:'💯', name:'Perfect Score',     desc:'Score 100% on a quiz',                xp:80,  cond: d => (d.quizzes||[]).some(q => (q.score||0) === 100) },
+  { id:'quiz_avg80',   cat:'Quizzes',  icon:'🌟', name:'High Achiever',     desc:'Maintain 80%+ average across 5 quizzes', xp:60, cond: d => { const q=(d.quizzes||[]).slice(-5); return q.length>=5 && q.reduce((a,x)=>a+(x.score||0),0)/q.length >= 80; } },
+  { id:'quiz_hard',    cat:'Quizzes',  icon:'💪', name:'Hard Mode',         desc:'Complete a hard difficulty quiz',     xp:50,  cond: d => (d.quizzes||[]).some(q => q.difficulty === 'hard') },
+
+  // Flashcards
+  { id:'fc_first',     cat:'Cards',    icon:'🃏', name:'Card Starter',      desc:'Review your first flashcard',         xp:10,  cond: d => (d.flashcards||[]).some(f => (f.reviews||0) > 0) },
+  { id:'fc_50',        cat:'Cards',    icon:'🎴', name:'Card Collector',    desc:'Review 50 flashcards',                xp:35,  cond: d => (d.flashcards||[]).filter(f => (f.reviews||0) > 0).length >= 50 },
+  { id:'fc_100',       cat:'Cards',    icon:'🃏', name:'Flashcard Master',  desc:'Review 100 flashcards',               xp:75,  cond: d => (d.flashcards||[]).filter(f => (f.reviews||0) > 0).length >= 100 },
+
+  // Focus
+  { id:'focus_first',  cat:'Focus',    icon:'⚡', name:'First Pomodoro',    desc:'Complete your first focus session',   xp:15,  cond: d => (d.focusSessions||[]).length >= 1 },
+  { id:'focus_10',     cat:'Focus',    icon:'🔥', name:'Focus Warrior',     desc:'Complete 10 focus sessions',          xp:40,  cond: d => (d.focusSessions||[]).length >= 10 },
+  { id:'focus_50',     cat:'Focus',    icon:'🧘', name:'Deep Focus',        desc:'Complete 50 focus sessions',          xp:100, cond: d => (d.focusSessions||[]).length >= 50 },
+  { id:'focus_2h',     cat:'Focus',    icon:'⏳', name:'Marathon',          desc:'Study for 2 hours in a day',          xp:60,  cond: d => { const today=new Date().toISOString().split('T')[0]; const mins=(d.focusSessions||[]).filter(s=>s.date===today).reduce((a,s)=>a+(s.duration||0),0); return mins>=120; } },
+
+  // Streak
+  { id:'streak_3',     cat:'Streak',   icon:'🔥', name:'3-Day Streak',      desc:'Study 3 days in a row',               xp:30,  cond: d => _getStreak(d) >= 3 },
+  { id:'streak_7',     cat:'Streak',   icon:'🏆', name:'Week Warrior',      desc:'Study 7 days in a row',               xp:70,  cond: d => _getStreak(d) >= 7 },
+  { id:'streak_30',    cat:'Streak',   icon:'💫', name:'Monthly Champion',  desc:'Study 30 days in a row',              xp:200, cond: d => _getStreak(d) >= 30 },
+
+  // AI Tools
+  { id:'ai_summary',   cat:'AI',       icon:'📄', name:'AI Summariser',     desc:'Generate your first AI summary',      xp:15,  cond: d => (d.summaries||[]).length >= 1 },
+  { id:'ai_youtube',   cat:'AI',       icon:'📺', name:'Lecture Notes',     desc:'Summarise a YouTube lecture',         xp:25,  cond: d => (d.summaries||[]).some(s => s.source === 'youtube') },
+  { id:'ai_doubt',     cat:'AI',       icon:'🔍', name:'Doubt Destroyer',   desc:'Use the AI doubt solver',             xp:20,  cond: d => (d.doubts||[]).length >= 1 },
+  { id:'ai_roadmap',   cat:'AI',       icon:'🗺️', name:'Road Mapper',       desc:'Generate a study roadmap',            xp:20,  cond: d => !!(d.roadmap) },
+
+  // Planner
+  { id:'task_first',   cat:'Planner',  icon:'✅', name:'Task Master',       desc:'Complete your first task',            xp:10,  cond: d => (d.tasks||[]).some(t => t.done) },
+  { id:'task_20',      cat:'Planner',  icon:'📋', name:'Productive',        desc:'Complete 20 tasks',                   xp:50,  cond: d => (d.tasks||[]).filter(t => t.done).length >= 20 },
+  { id:'exam_added',   cat:'Planner',  icon:'📅', name:'Planner Pro',       desc:'Add an exam to the planner',          xp:10,  cond: d => (d.exams||[]).length >= 1 },
+
+  // Social
+  { id:'group_join',   cat:'Social',   icon:'👥', name:'Team Player',       desc:'Create or join a study group',        xp:15,  cond: () => (JSON.parse(localStorage.getItem('sa_groups')||'[]')).length >= 1 },
+
+  // Special
+  { id:'early_bird',   cat:'Special',  icon:'🌅', name:'Early Bird',        desc:'Study before 8am',                    xp:25,  cond: d => (d.focusSessions||[]).some(s => { const h=new Date(s.ts||0).getHours(); return h>=5&&h<8; }) },
+  { id:'night_owl',    cat:'Special',  icon:'🦉', name:'Night Owl',         desc:'Study after 11pm',                    xp:25,  cond: d => (d.focusSessions||[]).some(s => { const h=new Date(s.ts||0).getHours(); return h>=23||h<3; }) },
+  { id:'all_tools',    cat:'Special',  icon:'🚀', name:'Power User',        desc:'Use 8 different features',            xp:150, cond: d => {
+    let count = 0;
+    if ((d.notes||[]).length>0)          count++;
+    if ((d.quizzes||[]).length>0)        count++;
+    if ((d.flashcards||[]).length>0)     count++;
+    if ((d.focusSessions||[]).length>0)  count++;
+    if ((d.summaries||[]).length>0)      count++;
+    if ((d.tasks||[]).length>0)          count++;
+    if ((d.revisions||[]).length>0)      count++;
+    if ((d.exams||[]).length>0)          count++;
+    return count >= 8;
+  }},
 ];
 
+// ── XP Level definitions ──────────────────────────────────
 const LEVELS = [
-  {level:1, name:'Beginner',     min:0,    emoji:'🌱'},
-  {level:2, name:'Learner',      min:50,   emoji:'📖'},
-  {level:3, name:'Student',      min:150,  emoji:'🎓'},
-  {level:4, name:'Scholar',      min:300,  emoji:'⭐'},
-  {level:5, name:'Expert',       min:500,  emoji:'🔥'},
-  {level:6, name:'Master',       min:750,  emoji:'🏆'},
-  {level:7, name:'Legend',       min:1000, emoji:'👑'},
+  { level:1,  min:0,    name:'Beginner',    icon:'🌱' },
+  { level:2,  min:50,   name:'Explorer',    icon:'🗺️' },
+  { level:3,  min:120,  name:'Learner',     icon:'📚' },
+  { level:4,  min:250,  name:'Student',     icon:'🎓' },
+  { level:5,  min:450,  name:'Scholar',     icon:'🔬' },
+  { level:6,  min:700,  name:'Expert',      icon:'💡' },
+  { level:7,  min:1000, name:'Master',      icon:'🏆' },
+  { level:8,  min:1400, name:'Champion',    icon:'⚡' },
+  { level:9,  min:1900, name:'Legend',      icon:'🌟' },
+  { level:10, min:2500, name:'Grandmaster', icon:'💫' },
 ];
 
-async function initAchievements() {
-  const data = await apiGet('/data').catch(() => ({}));
-  await _checkAndUnlock(data);
-  _renderStats(data);
-  _renderXPBar(data);
-  _renderGrid(data);
+function _getStreak(data) {
+  const sessions = data.focusSessions || [];
+  const dates = [...new Set(sessions.map(s=>s.date))].sort().reverse();
+  let streak = 0;
+  let d = new Date();
+  for (let i = 0; i < dates.length; i++) {
+    const ds = d.toISOString().split('T')[0];
+    if (dates[i] === ds) { streak++; d.setDate(d.getDate()-1); }
+    else if (i === 0 && dates[0] < ds) break;
+    else break;
+  }
+  return streak;
 }
 
-async function _checkAndUnlock(data) {
-  const stored = data.achievements || [];
-  let changed  = false;
+function getLevel(xp) {
+  let level = LEVELS[0];
+  for (const l of LEVELS) { if (xp >= l.min) level = l; }
+  return level;
+}
+
+function getXPToNext(xp) {
+  for (let i = 0; i < LEVELS.length - 1; i++) {
+    if (xp < LEVELS[i+1].min) return { current: xp - LEVELS[i].min, needed: LEVELS[i+1].min - LEVELS[i].min, nextLevel: LEVELS[i+1] };
+  }
+  return { current: xp, needed: xp, nextLevel: null }; // Max level
+}
+
+// ── Check and unlock achievements ────────────────────────
+async function checkAchievements(data) {
+  const earned   = (data.achievements || []);
+  const earnedIds = new Set(earned.map(a => a.id));
   const newlyUnlocked = [];
 
-  ACH_DEFS.forEach(def => {
-    const existing = stored.find(a=>a.id===def.id);
-    if (existing?.unlocked) return;
+  for (const def of ACHIEVEMENTS_DEF) {
+    if (earnedIds.has(def.id)) continue;
     try {
       if (def.cond(data)) {
-        const idx = stored.findIndex(a=>a.id===def.id);
-        if (idx>=0) { stored[idx].unlocked=true; stored[idx].unlockedAt=Date.now(); }
-        else stored.push({id:def.id, unlocked:true, unlockedAt:Date.now()});
-        newlyUnlocked.push(def);
-        changed = true;
+        newlyUnlocked.push({ ...def, unlockedAt: Date.now() });
       }
-    } catch(_) {}
-  });
-
-  if (changed) {
-    await apiPost('/data/achievements',{value:stored});
-    newlyUnlocked.forEach(def => {
-      setTimeout(() => {
-        showToast(`🏆 Achievement: <strong>${def.name}</strong> +${def.xp} XP`,'success',5000);
-        burstConfetti();
-      }, 500);
-    });
+    } catch {}
   }
+
+  if (newlyUnlocked.length > 0) {
+    const updated = [...earned, ...newlyUnlocked];
+    data.achievements = updated;
+    await apiPost('/api/data', { achievements: updated });
+    // Show pop-ups
+    for (const ach of newlyUnlocked) {
+      await _showAchievementPopup(ach);
+    }
+  }
+
+  return data;
 }
 
-function _getUnlocked(data) {
-  const stored = data.achievements || [];
-  return ACH_DEFS.map(def=>{
-    const s = stored.find(a=>a.id===def.id);
-    return {...def, unlocked:s?.unlocked||false, unlockedAt:s?.unlockedAt||null};
+// ── Achievement unlock pop-up ─────────────────────────────
+function _showAchievementPopup(ach) {
+  return new Promise(resolve => {
+    const popup = document.createElement('div');
+    popup.style.cssText = `
+      position:fixed;bottom:90px;right:24px;z-index:9998;
+      background:var(--bg-card);border:1px solid rgba(102,126,234,.3);
+      border-radius:16px;padding:16px 20px;
+      display:flex;align-items:center;gap:14px;
+      box-shadow:0 16px 48px rgba(0,0,0,.35);
+      max-width:320px;width:calc(100vw - 48px);
+      animation:achIn .4s cubic-bezier(.34,1.56,.64,1);
+    `;
+    popup.innerHTML = `
+      <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,rgba(102,126,234,.2),rgba(240,147,251,.15));
+        display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0">${ach.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--purple);margin-bottom:3px">Achievement Unlocked! 🎉</div>
+        <div style="font-size:.9rem;font-weight:700;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ach.name}</div>
+        <div style="font-size:.75rem;color:var(--text-muted)">${ach.desc} · +${ach.xp} XP</div>
+      </div>`;
+
+    if (!document.getElementById('ach-popup-style')) {
+      const s = document.createElement('style');
+      s.id = 'ach-popup-style';
+      s.textContent = '@keyframes achIn{from{opacity:0;transform:translateX(30px) scale(.9)}to{opacity:1;transform:none}} @keyframes achOut{to{opacity:0;transform:translateX(30px) scale(.9)}}';
+      document.head.appendChild(s);
+    }
+
+    document.body.appendChild(popup);
+
+    setTimeout(() => {
+      popup.style.animation = 'achOut .3s ease forwards';
+      setTimeout(() => { popup.remove(); resolve(); }, 300);
+    }, 3500);
   });
 }
 
-function _calcXP(all) {
-  return all.filter(a=>a.unlocked).reduce((s,a)=>s+(a.xp||0),0);
-}
+// ── Page init ─────────────────────────────────────────────
+async function initAchievements() {
+  const data   = await getData();
+  const earned = data.achievements || [];
+  const totalXP = earned.reduce((a, x) => a + (x.xp || 0), 0);
+  const level  = getLevel(totalXP);
+  const xpInfo = getXPToNext(totalXP);
 
-function _getLevel(xp) {
-  let cur=LEVELS[0], nxt=LEVELS[1];
-  LEVELS.forEach((l,i)=>{ if(xp>=l.min){cur=l; nxt=LEVELS[i+1]||null;} });
-  const pct = nxt ? Math.round(((xp-cur.min)/(nxt.min-cur.min))*100) : 100;
-  return {cur,nxt,pct,xp};
-}
+  // ── Stat cards ──
+  const sg = document.getElementById('ach-stats');
+  if (sg) sg.innerHTML = `
+    <div class="stat-card c1"><div class="stat-icon">🏆</div><div class="stat-val">${earned.length}</div><div class="stat-lbl">Earned</div></div>
+    <div class="stat-card c2"><div class="stat-icon">⭐</div><div class="stat-val">${totalXP}</div><div class="stat-lbl">Total XP</div></div>
+    <div class="stat-card c3"><div class="stat-icon">${level.icon}</div><div class="stat-val">${level.name}</div><div class="stat-lbl">Level ${level.level}</div></div>
+    <div class="stat-card c4"><div class="stat-icon">🎯</div><div class="stat-val">${ACHIEVEMENTS_DEF.length - earned.length}</div><div class="stat-lbl">Remaining</div></div>`;
 
-function _renderStats(data) {
-  const all      = _getUnlocked(data);
-  const unlocked = all.filter(a=>a.unlocked);
-  const xp       = _calcXP(all);
-  const streak   = data.streak||{current:0,longest:0};
-  const qr       = data.quizResults||[];
-  const avgScore = qr.length ? Math.round(qr.reduce((s,r)=>s+r.pct,0)/qr.length) : 0;
-  const el       = document.getElementById('ach-stats');
-  if (!el) return;
+  // ── XP bar ──
+  const xpBar  = document.getElementById('xp-bar');
+  const xpText = document.getElementById('xp-text');
+  const badge  = document.getElementById('level-badge');
+  const pct    = xpInfo.needed > 0 ? Math.min(100, Math.round(xpInfo.current / xpInfo.needed * 100)) : 100;
+  if (xpBar)  xpBar.style.width = pct + '%';
+  if (xpText) xpText.textContent = totalXP + ' XP';
+  if (badge)  badge.textContent  = `${level.icon} ${level.name}`;
+  document.getElementById('xp-next-text') && (document.getElementById('xp-next-text').textContent = xpInfo.nextLevel ? `Next: ${xpInfo.nextLevel.name} at ${xpInfo.nextLevel.min} XP` : 'Max level reached!');
+  document.getElementById('xp-level-desc') && (document.getElementById('xp-level-desc').textContent = `${pct}% to next level`);
 
-  el.innerHTML = [
-    {icon:'🏆',cls:'orange',val:`${unlocked.length}/${all.length}`,label:'Badges Earned',  chg:`${all.length-unlocked.length} remaining`},
-    {icon:'⭐',cls:'purple',val:xp+' XP',                          label:'Total Experience',chg:`${Math.round((unlocked.length/all.length)*100)}% complete`},
-    {icon:'🔥',cls:'pink',  val:streak.current+'d',                label:'Streak',          chg:`Best: ${streak.longest}d`},
-    {icon:'🎯',cls:'blue',  val:avgScore+'%',                      label:'Quiz Average',    chg:`${qr.length} quizzes`},
-  ].map(s=>`
-    <div class="stat-card ${s.cls}">
-      <div class="stat-icon ${s.cls}">${s.icon}</div>
-      <div class="stat-value">${s.val}</div>
-      <div class="stat-label">${s.label}</div>
-      <div class="stat-change up">↑ ${s.chg}</div>
-    </div>`).join('');
-}
+  // ── Achievement grid ──
+  const grid = document.getElementById('ach-grid');
+  if (!grid) return;
 
-function _renderXPBar(data) {
-  const all   = _getUnlocked(data);
-  const xp    = _calcXP(all);
-  const lvl   = _getLevel(xp);
-  const badge = document.getElementById('level-badge');
-  const xpTxt = document.getElementById('xp-text');
-  const xpNxt = document.getElementById('xp-next-text');
-  const bar   = document.getElementById('xp-bar');
-  const desc  = document.getElementById('xp-level-desc');
+  const earnedIds = new Set(earned.map(a => a.id));
+  const categories = [...new Set(ACHIEVEMENTS_DEF.map(a => a.cat))];
 
-  if (badge) { badge.textContent = `${lvl.cur.emoji} ${lvl.cur.name}`; }
-  if (xpTxt) xpTxt.textContent = xp+' XP';
-  if (xpNxt) xpNxt.textContent = lvl.nxt ? `Next: ${lvl.nxt.name} at ${lvl.nxt.min} XP` : '🎉 Max level reached!';
-  if (bar)   bar.style.width   = lvl.pct+'%';
-  if (desc)  desc.textContent  = lvl.nxt
-    ? `${lvl.nxt.min - xp} XP to reach ${lvl.nxt.name}`
-    : 'You have reached the highest level — Legend! 👑';
-}
-
-function _renderGrid(data) {
-  const all = _getUnlocked(data);
-  const el  = document.getElementById('ach-grid');
-  if (!el) return;
-  el.style.display = 'grid';
-  el.innerHTML = '';
-
-  const cats = [...new Set(ACH_DEFS.map(d=>d.cat))];
-  cats.forEach(cat => {
-    const items = all.filter(a=>a.cat===cat);
-    if (!items.length) return;
-
-    const hdr = document.createElement('div');
-    hdr.className = 'cat-header';
-    hdr.innerHTML = `
-      <span class="cat-label">${cat}</span>
-      <div class="cat-line"></div>
-      <span class="text-xs text-muted">${items.filter(a=>a.unlocked).length}/${items.length}</span>`;
-    el.appendChild(hdr);
-
-    items.forEach(a => {
-      const card = document.createElement('div');
-      card.className = `ach-card ${a.unlocked?'unlocked':'locked'}`;
-      card.onclick   = () => _showDetail(a);
-      card.innerHTML = `
-        <span class="ach-icon">${a.icon}</span>
-        <div class="ach-name">${a.name}</div>
-        <div class="ach-desc">${a.desc}</div>
-        <div class="flex items-center jcenter mt-3">
-          <span class="badge ${a.unlocked?'badge-green':'badge-purple'}">${a.unlocked?'✓ Earned':a.xp+' XP'}</span>
-          ${a.unlocked&&a.unlockedAt?`<span class="text-xs text-muted" style="margin-left:8px">${timeAgo(a.unlockedAt)}</span>`:''}
+  let html = '';
+  for (const cat of categories) {
+    html += `<div class="cat-header"><div class="cat-line"></div><div class="cat-label">${cat}</div><div class="cat-line"></div></div>`;
+    const catAchs = ACHIEVEMENTS_DEF.filter(a => a.cat === cat);
+    for (const ach of catAchs) {
+      const isUnlocked = earnedIds.has(ach.id);
+      const earnedData = earned.find(e => e.id === ach.id);
+      html += `
+        <div class="ach-card ${isUnlocked ? 'unlocked' : 'locked'}">
+          <span class="ach-icon">${ach.icon}</span>
+          <div class="ach-name">${ach.name}</div>
+          <div class="ach-desc">${ach.desc}</div>
+          <div style="margin-top:8px">
+            <span class="badge ${isUnlocked ? 'badge-purple' : 'badge-cyan'}">${isUnlocked ? '+'+ach.xp+' XP ✓' : ach.xp+' XP'}</span>
+          </div>
+          ${isUnlocked && earnedData?.unlockedAt ? `<div style="font-size:.65rem;color:var(--text-muted);margin-top:5px">${new Date(earnedData.unlockedAt).toLocaleDateString()}</div>` : ''}
         </div>`;
-      el.appendChild(card);
-    });
-  });
+    }
+  }
+  grid.innerHTML = html;
+
+  // Check for new achievements
+  await checkAchievements(data);
 }
 
-function _showDetail(a) {
-  const status = a.unlocked
-    ? `Earned ${a.unlockedAt?timeAgo(a.unlockedAt):''} · +${a.xp} XP`
-    : `Locked — earn ${a.xp} XP by completing the condition.`;
-  showToast(`${a.icon} ${a.name} — ${a.desc}<br><span style="opacity:.7;font-size:.74rem">${status}</span>`, a.unlocked?'success':'info', 4500);
-}
+// ── Export for use in other pages ────────────────────────
+window.AchievementsEngine = { check: checkAchievements, getLevel, ACHIEVEMENTS_DEF };

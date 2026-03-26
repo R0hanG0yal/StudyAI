@@ -1,7 +1,10 @@
 /* ============================================================
-   STUDYAI — sidebar.js  (v2)
+   STUDYAI — sidebar.js (v2.1)
    Builds and injects sidebar + topbar. Handles mobile drawer.
    ============================================================ */
+'use strict';
+
+// Uses escHtml() from sanitize.js (loaded first) for XSS safety
 
 const NAV_ITEMS = [
   { section: 'Main' },
@@ -26,7 +29,7 @@ const NAV_ITEMS = [
 
 function buildSidebar(user, activePage) {
   const layout = document.getElementById('app-layout');
-  if (!layout) return;
+  if (!layout || document.getElementById('sidebar')) return;
 
   let navHtml = '';
   NAV_ITEMS.forEach(item => {
@@ -43,6 +46,9 @@ function buildSidebar(user, activePage) {
 
   const initials = (user.name || 'U').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
+  const displayName = user.name || 'Student';
+  const displayCourse = user.course || 'General';
+
   const sidebarHtml = `
     <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
       <div class="sidebar-logo">
@@ -52,9 +58,9 @@ function buildSidebar(user, activePage) {
       <div class="sidebar-footer">
         <a class="sidebar-user" href="/settings.html" title="Settings">
           <div class="user-avatar" aria-hidden="true">${initials}</div>
-          <div>
-            <div class="user-name">${_esc(user.name || 'Student')}</div>
-            <div class="user-course">${_esc(user.course || 'General')}</div>
+          <div class="user-info">
+            <div class="user-name">${escHtml(displayName)}</div>
+            <div class="user-course">${escHtml(displayCourse)}</div>
           </div>
         </a>
       </div>
@@ -93,10 +99,19 @@ function buildSidebar(user, activePage) {
       </div>
     </div>`;
 
+  // Injection
   const main = layout.querySelector('.main-content');
   if (main) {
-    main.insertAdjacentHTML('beforebegin', sidebarHtml);
-    main.insertAdjacentHTML('afterbegin', topbarHtml);
+    const sbContainer = document.createElement('div');
+    sbContainer.innerHTML = sidebarHtml;
+    // Prepend sidebar before main-content
+    layout.insertBefore(sbContainer.firstElementChild, main);
+    layout.insertBefore(sbContainer.lastElementChild, main);
+
+    const tbContainer = document.createElement('div');
+    tbContainer.innerHTML = topbarHtml;
+    // Prepend topbar into main-content
+    main.insertBefore(tbContainer.firstElementChild, main.firstChild);
   }
 
   // ── Theme toggle ──────────────────────────────────────────
@@ -225,8 +240,4 @@ function updateTopbarStats(streak, level) {
   }
 }
 
-function _esc(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-// Backwards compatibility alias
-const escapeHtml = _esc;
+// escHtml / escapeHtml provided by sanitize.js — no duplicate declaration needed

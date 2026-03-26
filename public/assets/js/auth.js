@@ -72,6 +72,11 @@ async function initPage(title) {
     buildSidebar(user, title);
   }
 
+  // Initialize storage layer if present
+  if (typeof loadAllData === 'function') {
+    await loadAllData();
+  }
+
   // Hide loader if any
   if (typeof hidePageLoader === 'function') hidePageLoader();
   

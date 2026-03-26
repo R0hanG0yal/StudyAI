@@ -7,7 +7,13 @@
   <title>StudyAI — Dashboard</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>"/>
   <link rel="stylesheet" href="assets/css/global.css"/>
-  <link rel="stylesheet" href="assets/css/components.css"/>
+<link rel="stylesheet" href="assets/css/components.css"/>
+<link rel="stylesheet" href="assets/css/mobile.css"/>
+  <!-- Core Security & Performance -->
+  <script src="assets/js/sanitize.js"></script>
+  <script src="assets/js/performance.js"></script>
+  <script src="assets/js/error-handler.js"></script>
+
   <!-- Dark Mode & Reading Mode Support -->
   <script>
     if (localStorage.getItem('sa_theme') !== 'light') {
@@ -18,7 +24,7 @@
     }
   </script>
   <style>
-    .welcome-banner{background:linear-gradient(135deg,rgba(102,126,234,.15) 0%,rgba(240,147,251,.1) 50%,rgba(79,172,254,.08) 100%);border:1px solid rgba(102,126,234,.2);border-radius:20px;padding:28px 32px;margin-bottom:24px;position:relative;overflow:hidden}
+    .welcome-banner{background:linear-gradient(135deg,rgba(80, 35, 121, 0.215) 0%,rgba(81, 14, 227, 0.447) 50%,rgba(79,172,254,.08) 100%);border:1px solid rgba(102,126,234,.2);border-radius:20px;padding:28px 32px;margin-bottom:24px;position:relative;overflow:hidden}
     .welcome-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(102,126,234,.18),transparent 70%);border-radius:50%}
     .welcome-greeting{font-family:var(--font-display);font-size:1.8rem;font-weight:800;margin-bottom:6px;position:relative;z-index:1}
     .welcome-sub{color:var(--text-dim);font-size:.9rem;position:relative;z-index:1}
@@ -222,7 +228,19 @@
 <script src="assets/js/utils.js"></script>
 <script src="assets/js/sidebar.js"></script>
 <script src="assets/js/storage.js"></script>
+<script src="assets/js/subjects.js"></script>
+<script src="assets/js/cache.js"></script>
+<script src="assets/js/session.js"></script>
+<script src="assets/js/search.js"></script>
+<script src="assets/js/pwa.js"></script>
+<script src="assets/js/achievements.js"></script>
 <script src="assets/js/dashboard.js"></script>
+<script>
+  // Initialize page layout and load dashboard content
+  initPage('Dashboard').then(user => {
+    if (user) loadDashboard(user);
+  }).catch(err => console.error('Init error:', err));
+</script>
 <script>
   // Set default dates without inline handlers
   document.addEventListener('DOMContentLoaded', () => {

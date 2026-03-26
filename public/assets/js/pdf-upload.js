@@ -259,11 +259,23 @@ async function pdfSaveAsNote() {
 
     notes.unshift(newNote);
 
-    await fetch('/api/data/notes', {
-      method : 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+(getToken?.()|| '') },
-      body   : JSON.stringify({ value: notes }),
-    });
+    // Standardized save using storage.js if available
+    if (typeof setData === 'function') {
+      setData('notes', notes);
+      if (typeof flushSync === 'function') await flushSync();
+    } else {
+      await fetch('/api/data/notes', {
+        method : 'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+(getToken?.()|| '') },
+        body   : JSON.stringify({ value: notes }),
+      });
+    }
+
+    // Sync local state if notes.js is active on this page
+    if (window.NS && Array.isArray(window.NS.notes)) {
+      window.NS.notes = notes;
+      if (typeof _buildNoteList === 'function') _buildNoteList();
+    }
 
     // Call the page's callback
     if (typeof window._pdfOnSuccess === 'function') {

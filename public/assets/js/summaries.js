@@ -574,7 +574,12 @@ async function doYoutubeSummarise() {
       updated   : now,
     };
     notes.unshift(newNote);
-    await apiPost('/data/notes', { value: notes });
+    if (typeof setData === 'function') {
+      setData('notes', notes);
+      if (typeof flushSync === 'function') await flushSync();
+    } else {
+      await apiPost('/data/notes', { value: notes });
+    }
     SM.data.notes = notes;
     _populateSources();
 

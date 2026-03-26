@@ -431,6 +431,12 @@ async function suSaveAsNote() {
       });
     }
 
+    // Sync local state if notes.js is active on this page (crucial for same-page uploads)
+    if (window.NS && Array.isArray(window.NS.notes)) {
+      window.NS.notes = notes;
+      if (typeof _buildNoteList === 'function') _buildNoteList();
+    }
+
     if (typeof window._suOnSuccess === 'function') {
       window._suOnSuccess({ ...data, noteId: newNote.id, note: newNote });
     }

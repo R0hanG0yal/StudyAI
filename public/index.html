@@ -7,6 +7,7 @@
     <title>StudyAI — Intelligence for Everyone</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
     
+    <link rel="manifest" href="manifest.json">
     <!-- Styles -->
     <link rel="stylesheet" href="assets/css/landing.css">
     
@@ -16,6 +17,11 @@
             window.location.href = '/dashboard.html';
         }
     </script>
+    
+    <!-- Core Security & Performance -->
+    <script src="assets/js/sanitize.js"></script>
+    <script src="assets/js/performance.js"></script>
+    <script src="assets/js/error-handler.js"></script>
 
     <!-- Dark Mode Support -->
     <script>
@@ -247,6 +253,8 @@
     <script src="assets/js/utils.js"></script>
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/index-init.js"></script>
+    <!-- PWA -->
+    <script src="assets/js/pwa.js"></script>
     
     <!-- Hero Preview Tilt -->
     <script>
