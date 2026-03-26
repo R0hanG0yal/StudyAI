@@ -203,13 +203,23 @@ async function auth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Unauthorized. Please login.' });
 
   if (MONGO_URI) {
+    // Check if mongoose is actually connected
+    if (mongoose.connection.readyState !== 1) {
+      console.error('  ⚠️  AUTH ATTEMPT FAILED: Database not connected (readyState: ' + mongoose.connection.readyState + ')');
+      return res.status(503).json({ error: 'Database connection in progress. Please wait.' });
+    }
+
     try {
       const sess = await Session.findOne({ token });
-      if (!sess) return res.status(401).json({ error: 'Session expired. Please login again.' });
+      if (!sess) {
+        console.warn('  ⚠️  AUTH FAILED: Token not found');
+        return res.status(401).json({ error: 'Session expired. Please login again.' });
+      }
       req.user = sess.user;
       next();
     } catch (err) {
-      res.status(500).json({ error: 'Session verification failed' });
+      console.error('  ❌ DB AUTH ERROR:', err.message);
+      res.status(500).json({ error: 'Session verification failed: ' + err.message });
     }
   } else {
     if (!sessions[token]) return res.status(401).json({ error: 'Unauthorized. Please login.' });
@@ -996,33 +1006,37 @@ app.get('*splat', (req, res) => {
 async function startServer() {
   if (MONGO_URI) {
     try {
-      await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
-      console.log('  ✅ MongoDB connected');
+      console.log('  ⏳ Connecting to MongoDB Atlas...');
+      await mongoose.connect(MONGO_URI, { 
+        serverSelectionTimeoutMS: 8000,
+        connectTimeoutMS: 10000,
+      });
+      console.log('  ✅ MongoDB Atlas Connection Established');
     } catch (err) {
-      console.error('  ❌ MongoDB connection failed:', err.message);
-      console.error('     App will start but data will NOT persist.\n');
+      console.error('\n  ❌ DATABASE CONNECTION FAILED:');
+      console.error(`     Error: ${err.message}`);
+      if (err.message.includes('IP address')) {
+        console.error('     👉 VITAL FIX: You must whitelist your server in Atlas.');
+        console.error('     1. Go to cloud.mongodb.com → Network Access');
+        console.error('     2. Add IP Address → "Allow Access from Anywhere" (0.0.0.0/0)');
+      } else if (err.message.includes('authentication')) {
+        console.error('     👉 VITAL FIX: Check your database Username/Password in MONGO_URI.');
+      }
+      console.error('     ⚠️  User data will NOT persist until this is fixed.\n');
     }
   }
 
+  // Connection Listeners
+  mongoose.connection.on('error', (err) => console.error('  ❌ DB ERROR:', err.message));
+  mongoose.connection.on('disconnected', () => console.warn('  ⚠️  DB DISCONNECTED'));
+
   app.listen(PORT, '0.0.0.0', () => {
-    console.log('');
-    console.log('  ╔════════════════════════════════════════════╗');
-    console.log('  ║   🧠  StudyAI Backend v2 Running!          ║');
-    console.log(`  ║   http://localhost:${PORT}                  ║`);
-    console.log('  ║   Security: bcrypt · crypto · rate-limit   ║');
-    console.log('  ╚════════════════════════════════════════════╝');
-    console.log('');
+    console.log(`\n  🚀 StudyAI Server v2 Active on Port ${PORT}`);
+    console.log(`  🔗 Local Access: http://localhost:${PORT}`);
+    console.log('  🔒 Security: bcrypt + crypto sessions enabled\n');
 
     if (!process.env.GROQ_API_KEY) {
-      console.warn('  ⚠️  GROQ_API_KEY not set — AI features disabled');
-      console.warn('     Add it to .env: GROQ_API_KEY=your_key_here\n');
-    } else {
-      console.log('  ✅ Groq API key loaded\n');
-    }
-
-    if (!MONGO_URI) {
-      console.warn('  ⚠️  MONGO_URI not set — user data will NOT be saved');
-      console.warn('     Free cluster at https://cloud.mongodb.com\n');
+      console.warn('  ⚠️  GROQ_API_KEY missing - AI features will fail.');
     }
 
     const RENDER_URL = process.env.RENDER_EXTERNAL_URL || '';
