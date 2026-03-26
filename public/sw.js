@@ -234,7 +234,7 @@ function offlinePageHTML() {
     <button onclick="location.reload()">Try Again</button>
   </div>
 </body>
-</html>`;
+</html>\`;
 }
 
 // ── Background Sync — queue failed saves ─────────────────
