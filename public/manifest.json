@@ -1,0 +1,50 @@
+{
+  "name": "StudyAI — Intelligence for Everyone",
+  "short_name": "StudyAI",
+  "description": "Unlock your true potential with smart AI-driven study tools.",
+  "start_url": "/dashboard.html",
+  "display": "standalone",
+  "background_color": "#080b14",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/assets/icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My Notes",
+      "short_name": "Notes",
+      "description": "Open your study notes",
+      "url": "/notes.html",
+      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "AI Chat",
+      "short_name": "Chat",
+      "description": "Chat with AI about your notes",
+      "url": "/chat.html",
+      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Quiz Zone",
+      "short_name": "Quiz",
+      "description": "Take an AI quiz",
+      "url": "/quiz.html",
+      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

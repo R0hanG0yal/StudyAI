@@ -15,6 +15,7 @@ data/
 *.json
 !package.json
 !package-lock.json
+!manifest.json
 
 # OS generated files
 .DS_Store
