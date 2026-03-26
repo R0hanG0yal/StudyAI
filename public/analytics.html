@@ -2,11 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none';"/>
+  <meta name="description" content="Deep insights into your study patterns, quiz scores and subject mastery."/>
+  <meta property="og:title" content="StudyAI — Analytics"/>
+  <meta property="og:description" content="Deep insights into your study patterns, quiz scores and subject mastery."/>
+  <meta property="og:type" content="website"/>
+  <meta name="theme-color" content="#667eea"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>StudyAI — Analytics</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>"/>
   <link rel="stylesheet" href="assets/css/global.css"/>
   <link rel="stylesheet" href="assets/css/components.css"/>
+  <link rel="stylesheet" href="assets/css/mobile.css"/>
+  <!-- Dark Mode Support -->
+  <script>
+    if (localStorage.getItem('sa_theme') !== 'light') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  </script>
   <style>
     .chart-card {
       background   : var(--bg-card);
@@ -96,9 +109,9 @@
           <p>Deep insights into your study performance and progress</p>
         </div>
         <div class="page-header-right" style="gap:6px">
-          <button class="period-btn active" data-days="7"  onclick="setPeriod(7,this)">7d</button>
-          <button class="period-btn"        data-days="30" onclick="setPeriod(30,this)">30d</button>
-          <button class="period-btn"        data-days="90" onclick="setPeriod(90,this)">90d</button>
+          <button class="period-btn active" data-days="7">7d</button>
+          <button class="period-btn" data-days="30">30d</button>
+          <button class="period-btn" data-days="90">90d</button>
         </div>
       </div>
 
@@ -163,13 +176,28 @@
 
 <div id="toast-container"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="assets/js/subjects.js"></script>
+<script src="assets/js/skeletons.js"></script>
 <script src="assets/js/auth.js"></script>
 <script src="assets/js/utils.js"></script>
 <script src="assets/js/sidebar.js"></script>
 <script src="assets/js/storage.js"></script>
 <script src="assets/js/analytics.js"></script>
 <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Wire all interactive elements — events.js handles data-close, data-open, data-tab-target
+    // Page-specific wiring happens inside initAnalytics() via event delegation
+  });
   initPage('Analytics').then(user => { if (user) initAnalytics(); });
+</script>
+<script src="assets/js/events.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-days]').forEach(btn => {
+      btn.addEventListener('click', () => setPeriod(parseInt(btn.dataset.days), btn));
+    });
+  });
 </script>
 </body>
 </html>

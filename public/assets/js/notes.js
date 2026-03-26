@@ -14,21 +14,6 @@ async function initNotes() {
   await _loadNotes();
   _wireNoteTabs();
 
-  // Highlight editor glow on focus
-  const body = document.getElementById('note-body');
-  const title = document.getElementById('note-title');
-  const panel = document.getElementById('editor-panel');
-  if (panel) {
-    if (body) {
-      body.addEventListener('focus', () => panel.classList.add('focused'));
-      body.addEventListener('blur', () => panel.classList.remove('focused'));
-    }
-    if (title) {
-      title.addEventListener('focus', () => panel.classList.add('focused'));
-      title.addEventListener('blur', () => panel.classList.remove('focused'));
-    }
-  }
-
   // Open first note or show empty state
   if (NS.notes.length) _openNote(NS.notes[0].id);
   else _showEmptyEditor();
@@ -37,7 +22,7 @@ async function initNotes() {
 /* ── Load notes from server ── */
 async function _loadNotes() {
   const data = await apiGet('/data').catch(() => ({}));
-  NS.notes   = (data.notes || []).sort((a, b) => {
+  NS.notes = (data.notes || []).sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
     return (b.updated || 0) - (a.updated || 0);
@@ -50,7 +35,7 @@ async function _loadNotes() {
    NOTE LIST
    ════════════════════════════════════════════════════════════ */
 function _buildNoteList(notes = null) {
-  const list  = document.getElementById('notes-list');
+  const list = document.getElementById('notes-list');
   if (!list) return;
 
   let items = notes || NS.notes;
@@ -80,18 +65,18 @@ function _buildNoteList(notes = null) {
   }
 
   list.innerHTML = items.map(n => {
-    const preview = (n.content || '').replace(/[#*`_=~\[\]]/g,'').substring(0,90);
+    const preview = (n.content || '').replace(/[#*`_=~\[\]]/g, '').substring(0, 90);
     const isActive = n.id === NS.id;
     return `
-      <div class="note-item ${isActive?'active':''}" onclick="_openNote('${n.id}')">
+      <div class="note-item ${isActive ? 'active' : ''}" onclick="_openNote('${n.id}')">
         <div class="note-item-title">
-          ${n.pinned?'📌 ':''}${n.bookmarked?'🔖 ':''}${escHtml(n.title||'Untitled')}
+          ${n.pinned ? '📌 ' : ''}${n.bookmarked ? '🔖 ' : ''}${escHtml(n.title || 'Untitled')}
         </div>
-        <div class="note-item-preview">${escHtml(preview||'Empty note')}</div>
+        <div class="note-item-preview">${escHtml(preview || 'Empty note')}</div>
         <div class="note-item-meta">
-          <span class="badge badge-purple" style="font-size:.6rem">${n.folder||'General'}</span>
-          ${(n.tags||[]).slice(0,2).map(t=>`<span class="badge badge-cyan" style="font-size:.6rem">${escHtml(t)}</span>`).join('')}
-          <span class="text-xs text-muted" style="margin-left:auto">${timeAgo(n.updated||n.created)}</span>
+          <span class="badge badge-purple" style="font-size:.6rem">${n.folder || 'General'}</span>
+          ${(n.tags || []).slice(0, 2).map(t => `<span class="badge badge-cyan" style="font-size:.6rem">${escHtml(t)}</span>`).join('')}
+          <span class="text-xs text-muted" style="margin-left:auto">${timeAgo(n.updated || n.created)}</span>
         </div>
       </div>`;
   }).join('');
@@ -101,13 +86,13 @@ function _populateFolderFilter() {
   const ff = document.getElementById('folder-filter');
   if (!ff) return;
   const folders = ['General', ...new Set(NS.notes.map(n => n.folder).filter(Boolean))];
-  const cur     = ff.value;
-  ff.innerHTML  = '<option value="all">All Folders</option>' +
-    folders.map(f => `<option value="${f}" ${f===cur?'selected':''}>${f}</option>`).join('');
+  const cur = ff.value;
+  ff.innerHTML = '<option value="all">All Folders</option>' +
+    folders.map(f => `<option value="${f}" ${f === cur ? 'selected' : ''}>${f}</option>`).join('');
 }
 
-function filterNotes()             { _buildNoteList(); }
-function searchNotes(q)            { NS.searchQ = q; _buildNoteList(); }
+function filterNotes() { _buildNoteList(); }
+function searchNotes(q) { NS.searchQ = q; _buildNoteList(); }
 
 /* ════════════════════════════════════════════════════════════
    OPEN NOTE IN EDITOR
@@ -118,29 +103,29 @@ function _openNote(id) {
   NS.id = id;
 
   const titleEl = document.getElementById('note-title');
-  const bodyEl  = document.getElementById('note-body');
-  const folderEl= document.getElementById('note-folder');
-  const tagsEl  = document.getElementById('note-tags');
+  const bodyEl = document.getElementById('note-body');
+  const folderEl = document.getElementById('note-folder');
+  const tagsEl = document.getElementById('note-tags');
 
-  if (titleEl)  titleEl.value  = n.title   || '';
-  if (bodyEl)   bodyEl.value   = n.content || '';
-  if (folderEl) folderEl.value = n.folder  || 'General';
-  if (tagsEl)   tagsEl.value   = (n.tags||[]).join(', ');
+  if (titleEl) titleEl.value = n.title || '';
+  if (bodyEl) bodyEl.value = n.content || '';
+  if (folderEl) folderEl.value = n.folder || 'General';
+  if (tagsEl) tagsEl.value = (n.tags || []).join(', ');
 
   _updateCounts();
-  _renderTagsDisplay(n.tags||[]);
+  _renderTagsDisplay(n.tags || []);
   _setSaveStatus('Saved');
   _buildNoteList();
 
   // Switch to editor view if not already there
   const activeTab = document.querySelector('#notes-tabs .tab.active');
-  if (activeTab && activeTab.dataset.view !== 'editor') {
+  if (activeTab && activeTab.dataset.tabTarget !== 'editor') {
     _switchView('editor');
   }
 }
 
 function _showEmptyEditor() {
-  ['note-title','note-body','note-tags'].forEach(id => {
+  ['note-title', 'note-body', 'note-tags'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -153,9 +138,9 @@ function _showEmptyEditor() {
    ════════════════════════════════════════════════════════════ */
 async function createNote() {
   const n = {
-    id:genId(), title:'New Note', content:'', folder:'General',
-    tags:[], pinned:false, bookmarked:false,
-    created:Date.now(), updated:Date.now(),
+    id: genId(), title: 'New Note', content: '', folder: 'General',
+    tags: [], pinned: false, bookmarked: false,
+    created: Date.now(), updated: Date.now(),
   };
   NS.notes.unshift(n);
   await _saveAllNotes();
@@ -169,9 +154,9 @@ async function createNote() {
 async function deleteNote() {
   if (!NS.id) return showToast('No note selected.', 'warning');
   const n = NS.notes.find(x => x.id === NS.id);
-  if (!confirm(`Delete "${n?.title||'this note'}"? This cannot be undone.`)) return;
+  if (!confirm(`Delete "${n?.title || 'this note'}"? This cannot be undone.`)) return;
   NS.notes = NS.notes.filter(x => x.id !== NS.id);
-  NS.id    = null;
+  NS.id = null;
   await _saveAllNotes();
   _buildNoteList();
   _populateFolderFilter();
@@ -183,38 +168,11 @@ async function deleteNote() {
 /* ════════════════════════════════════════════════════════════
    AUTO-SAVE
    ════════════════════════════════════════════════════════════ */
-async function onNoteInput() {
+function onNoteInput() {
   _updateCounts();
-  _setSaveStatus('Saving…');
-
-  const titleInput = document.getElementById('note-title');
-  const bodyInput  = document.getElementById('note-body');
-  const title = titleInput?.value.trim() || '';
-  const content = bodyInput?.value || '';
-
-  // Auto-create note if typing on empty template workspace!
-  if (!NS.id && (title || content)) {
-    const n = {
-      id        : genId(),
-      title     : title || (content ? truncate(content.split('\n')[0], 25) : 'Untitled Note'),
-      content   : content,
-      folder    : document.getElementById('note-folder')?.value || 'General',
-      tags      : [], pinned: false, bookmarked: false,
-      created   : Date.now(), updated: Date.now(),
-    };
-    NS.notes.unshift(n);
-    NS.id = n.id;
-    await _saveAllNotes();
-    _buildNoteList();
-    _populateFolderFilter();
-    _setSaveStatus('Saved ✓');
-    return;
-  }
-
+  _setSaveStatus('Unsaved…');
   clearTimeout(NS.saveTimer);
-  if (NS.id) {
-    NS.saveTimer = setTimeout(saveNote, 800);
-  }
+  NS.saveTimer = setTimeout(saveNote, 900);
 }
 
 async function saveNote() {
@@ -222,14 +180,14 @@ async function saveNote() {
   const idx = NS.notes.findIndex(n => n.id === NS.id);
   if (idx < 0) return;
 
-  const title   = document.getElementById('note-title')?.value.trim() || 'Untitled';
+  const title = document.getElementById('note-title')?.value.trim() || 'Untitled';
   const content = document.getElementById('note-body')?.value || '';
-  const folder  = document.getElementById('note-folder')?.value || 'General';
+  const folder = document.getElementById('note-folder')?.value || 'General';
   const tagsRaw = document.getElementById('note-tags')?.value || '';
-  const tags    = tagsRaw.split(',').map(t=>t.trim()).filter(Boolean);
+  const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
 
   // Version history (keep 5)
-  const prev    = NS.notes[idx];
+  const prev = NS.notes[idx];
   const history = prev.history || [];
   if (prev.content && prev.content !== content) {
     history.unshift({ content: prev.content, saved: prev.updated });
@@ -252,9 +210,9 @@ async function _saveAllNotes() {
 
 /* ── Counts ── */
 function _updateCounts() {
-  const body  = document.getElementById('note-body');
-  const wc    = document.getElementById('word-count');
-  const cc    = document.getElementById('char-count');
+  const body = document.getElementById('note-body');
+  const wc = document.getElementById('word-count');
+  const cc = document.getElementById('char-count');
   if (!body) return;
   const words = body.value.trim().split(/\s+/).filter(Boolean).length;
   if (wc) wc.textContent = words + ' words';
@@ -303,10 +261,10 @@ function fmt(style) {
   if (!ta) return;
   const s = ta.selectionStart, e = ta.selectionEnd;
   const sel = ta.value.substring(s, e);
-  const w   = { bold:'**', italic:'*', underline:'__' }[style];
+  const w = { bold: '**', italic: '*', underline: '__' }[style];
   if (!w) return;
   const ins = sel ? `${w}${sel}${w}` : `${w}text${w}`;
-  ta.value  = ta.value.substring(0,s) + ins + ta.value.substring(e);
+  ta.value = ta.value.substring(0, s) + ins + ta.value.substring(e);
   ta.selectionStart = s; ta.selectionEnd = s + ins.length;
   ta.focus(); onNoteInput();
 }
@@ -314,9 +272,9 @@ function fmt(style) {
 function insH(l) {
   const ta = document.getElementById('note-body');
   if (!ta) return;
-  const p  = ta.selectionStart;
-  const ins= '\n' + '#'.repeat(l) + ' ';
-  ta.value = ta.value.substring(0,p) + ins + ta.value.substring(p);
+  const p = ta.selectionStart;
+  const ins = '\n' + '#'.repeat(l) + ' ';
+  ta.value = ta.value.substring(0, p) + ins + ta.value.substring(p);
   ta.selectionStart = ta.selectionEnd = p + ins.length;
   ta.focus(); onNoteInput();
 }
@@ -324,29 +282,29 @@ function insH(l) {
 function insBullet() {
   const ta = document.getElementById('note-body');
   if (!ta) return;
-  const p  = ta.selectionStart;
-  ta.value = ta.value.substring(0,p) + '\n- ' + ta.value.substring(p);
+  const p = ta.selectionStart;
+  ta.value = ta.value.substring(0, p) + '\n- ' + ta.value.substring(p);
   ta.selectionStart = ta.selectionEnd = p + 3;
   ta.focus(); onNoteInput();
 }
 
 function insCode() {
-  const ta  = document.getElementById('note-body');
+  const ta = document.getElementById('note-body');
   if (!ta) return;
-  const s   = ta.selectionStart, e = ta.selectionEnd;
+  const s = ta.selectionStart, e = ta.selectionEnd;
   const sel = ta.value.substring(s, e);
   const ins = sel ? `\`\`\`\n${sel}\n\`\`\`` : '`code here`';
-  ta.value  = ta.value.substring(0,s) + ins + ta.value.substring(e);
+  ta.value = ta.value.substring(0, s) + ins + ta.value.substring(e);
   ta.selectionStart = s; ta.selectionEnd = s + ins.length;
   ta.focus(); onNoteInput();
 }
 
 function insTable() {
-  const ta  = document.getElementById('note-body');
+  const ta = document.getElementById('note-body');
   if (!ta) return;
-  const p   = ta.selectionStart;
+  const p = ta.selectionStart;
   const ins = '\n| Header 1 | Header 2 | Header 3 |\n| --- | --- | --- |\n| Cell 1 | Cell 2 | Cell 3 |\n';
-  ta.value  = ta.value.substring(0,p) + ins + ta.value.substring(p);
+  ta.value = ta.value.substring(0, p) + ins + ta.value.substring(p);
   ta.selectionStart = ta.selectionEnd = p + ins.length;
   ta.focus(); onNoteInput();
 }
@@ -358,8 +316,8 @@ function exportNote() {
   if (!NS.id) return showToast('No note selected.', 'warning');
   const n = NS.notes.find(x => x.id === NS.id);
   if (!n) return;
-  const text = `# ${n.title}\n\nFolder: ${n.folder}\nTags: ${(n.tags||[]).join(', ')||'none'}\nUpdated: ${new Date(n.updated).toLocaleString()}\n\n---\n\n${n.content||''}`;
-  downloadMD(text, (n.title||'note').replace(/\s+/g,'_') + '.md');
+  const text = `# ${n.title}\n\nFolder: ${n.folder}\nTags: ${(n.tags || []).join(', ') || 'none'}\nUpdated: ${new Date(n.updated).toLocaleString()}\n\n---\n\n${n.content || ''}`;
+  downloadMD(text, (n.title || 'note').replace(/\s+/g, '_') + '.md');
   showToast('Note exported!', 'success');
 }
 
@@ -374,12 +332,12 @@ async function handleFileUpload(inp) {
   const reader = new FileReader();
   reader.onload = async e => {
     const n = {
-      id:genId(),
-      title: file.name.replace(/\.(txt|md)$/,'').replace(/_/g,' '),
+      id: genId(),
+      title: file.name.replace(/\.(txt|md)$/, '').replace(/_/g, ' '),
       content: e.target.result,
-      folder: 'General', tags:['imported'],
-      pinned:false, bookmarked:false,
-      created:Date.now(), updated:Date.now(),
+      folder: 'General', tags: ['imported'],
+      pinned: false, bookmarked: false,
+      created: Date.now(), updated: Date.now(),
     };
     NS.notes.unshift(n);
     await _saveAllNotes();
@@ -401,19 +359,19 @@ async function aiSummaryFromNote() {
   if (!n?.content?.trim()) return showToast('Note is empty.', 'warning');
 
   const titleEl = document.getElementById('modal-summary-title');
-  const bodyEl  = document.getElementById('modal-summary-body');
+  const bodyEl = document.getElementById('modal-summary-body');
   if (titleEl) titleEl.textContent = `Summary: ${n.title}`;
-  if (bodyEl)  bodyEl.innerHTML    = spinnerHTML('Generating summary with AI…');
+  if (bodyEl) bodyEl.innerHTML = spinnerHTML('Generating summary with AI…');
   openModal('modal-summary');
 
   try {
-    const data = await apiPost('/ai/summarise', { text:n.content, type:'general', noteTitle:n.title });
+    const data = await apiPost('/ai/summarise', { text: n.content, type: 'general', noteTitle: n.title });
     if (bodyEl) bodyEl.innerHTML = mdToHtml(data.summary);
 
     // Save to summaries
-    const d    = await apiGet('/data').catch(()=>({}));
+    const d = await apiGet('/data').catch(() => ({}));
     const sums = d.summaries || [];
-    sums.unshift({ id:genId(), noteId:n.id, noteTitle:n.title, type:'general', content:data.summary, topics:[], created:Date.now() });
+    sums.unshift({ id: genId(), noteId: n.id, noteTitle: n.title, type: 'general', content: data.summary, topics: [], created: Date.now() });
     await apiPost('/data/summaries', { value: sums });
     showToast('Summary generated!', 'success');
   } catch (e) {
@@ -424,9 +382,9 @@ async function aiSummaryFromNote() {
 
 function exportSummaryView() {
   const title = document.getElementById('modal-summary-title')?.textContent || 'Summary';
-  const body  = document.getElementById('modal-summary-body')?.innerText     || '';
+  const body = document.getElementById('modal-summary-body')?.innerText || '';
   if (!body.trim()) return;
-  downloadMD(`# ${title}\n\n${body}`, title.replace(/\s+/g,'_') + '.md');
+  downloadMD(`# ${title}\n\n${body}`, title.replace(/\s+/g, '_') + '.md');
   showToast('Exported!', 'success');
 }
 
@@ -447,16 +405,16 @@ function _buildGridView(containerId, notes) {
   const el = document.getElementById(containerId);
   if (!el) return;
   if (!notes.length) {
-    el.innerHTML = emptyState('📝','Nothing here yet','');
+    el.innerHTML = emptyState('📝', 'Nothing here yet', '');
     return;
   }
   el.innerHTML = notes.map(n => `
     <div class="note-grid-card" onclick="_openNote('${n.id}');_switchView('editor')">
-      <div class="note-grid-title">${n.pinned?'📌 ':''}${escHtml(n.title||'Untitled')}</div>
-      <div class="note-grid-preview">${escHtml((n.content||'').replace(/[#*`_]/g,'').substring(0,200)||'Empty note')}</div>
+      <div class="note-grid-title">${n.pinned ? '📌 ' : ''}${escHtml(n.title || 'Untitled')}</div>
+      <div class="note-grid-preview">${escHtml((n.content || '').replace(/[#*`_]/g, '').substring(0, 200) || 'Empty note')}</div>
       <div class="note-item-meta" style="margin-top:10px">
-        <span class="badge badge-purple" style="font-size:.6rem">${n.folder||'General'}</span>
-        <span class="text-xs text-muted" style="margin-left:auto">${timeAgo(n.updated||n.created)}</span>
+        <span class="badge badge-purple" style="font-size:.6rem">${n.folder || 'General'}</span>
+        <span class="text-xs text-muted" style="margin-left:auto">${timeAgo(n.updated || n.created)}</span>
       </div>
     </div>`).join('');
 }
@@ -466,27 +424,27 @@ function _buildGridView(containerId, notes) {
    ════════════════════════════════════════════════════════════ */
 function _wireNoteTabs() {
   document.querySelectorAll('#notes-tabs .tab').forEach(tab => {
-    tab.onclick = () => _switchView(tab.dataset.view, tab);
+    tab.onclick = () => _switchView(tab.dataset.tabTarget, tab);
   });
 }
 
 function _switchView(view, tabEl) {
   // Update tabs
   document.querySelectorAll('#notes-tabs .tab').forEach(t => t.classList.remove('active'));
-  const active = tabEl || document.querySelector(`#notes-tabs .tab[data-view="${view}"]`);
+  const active = tabEl || document.querySelector(`#notes-tabs .tab[data-tab-target="${view}"]`);
   if (active) active.classList.add('active');
 
   // Show/hide views
-  const views = { editor:'view-editor', grid:'view-grid', pinned:'view-pinned', bookmarks:'view-bookmarks' };
+  const views = { editor: 'view-editor', grid: 'view-grid', pinned: 'view-pinned', bookmarks: 'view-bookmarks' };
   Object.entries(views).forEach(([v, id]) => {
     const el = document.getElementById(id);
-    if (el) el.style.display = v === view ? (v==='editor'?'flex':'block') : 'none';
+    if (el) el.style.display = v === view ? (v === 'editor' ? 'flex' : 'block') : 'none';
   });
 
   // Build grid views
-  if (view === 'grid')      _buildGridView('notes-grid-container', NS.notes);
-  if (view === 'pinned')    _buildGridView('notes-pinned-container', NS.notes.filter(n=>n.pinned));
-  if (view === 'bookmarks') _buildGridView('notes-bookmarks-container', NS.notes.filter(n=>n.bookmarked));
+  if (view === 'grid') _buildGridView('notes-grid-container', NS.notes);
+  if (view === 'pinned') _buildGridView('notes-pinned-container', NS.notes.filter(n => n.pinned));
+  if (view === 'bookmarks') _buildGridView('notes-bookmarks-container', NS.notes.filter(n => n.bookmarked));
 }
 
 /* ── PDF Upload (added by pdf-upload.js) ── */

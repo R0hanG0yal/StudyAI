@@ -98,7 +98,7 @@ async function newChat() {
   CS.activeId = sess.id;
   CS.history  = [];
 
-  await _saveSessions();
+  _saveSessions();
   _renderSessions();
   _showWelcome();
   _renderSuggestions();
@@ -187,7 +187,7 @@ async function sendMessage() {
   _scrollBottom();
 
   // Save user message
-  await _addMessage('user', text);
+  _addMessage('user', text);
   CS.history.push({ role: 'user', content: text });
 
   // Show typing
@@ -214,7 +214,7 @@ async function sendMessage() {
 
     const reply = data.response || 'Sorry, I could not generate a response.';
     _appendBubble('ai', reply, Date.now());
-    await _addMessage('ai', reply);
+    _addMessage('ai', reply);
     CS.history.push({ role: 'assistant', content: reply });
 
     _renderSessions();
@@ -333,7 +333,7 @@ async function clearChat() {
   const idx = CS.sessions.findIndex(s => s.id === CS.activeId);
   if (idx >= 0) { CS.sessions[idx].messages = []; CS.sessions[idx].title = 'New Chat'; }
   CS.history = [];
-  await _saveSessions();
+  _saveSessions();
   _showWelcome();
   _renderSessions();
   showToast('Chat cleared.', 'info');
@@ -353,7 +353,7 @@ function exportChat() {
 /* ════════════════════════════════════════════════════════════
    PERSISTENCE
    ════════════════════════════════════════════════════════════ */
-async function _addMessage(role, text) {
+function _addMessage(role, text) {
   const idx = CS.sessions.findIndex(s => s.id === CS.activeId);
   if (idx < 0) return;
 
@@ -365,13 +365,13 @@ async function _addMessage(role, text) {
     CS.sessions[idx].title = text.slice(0, 45) + (text.length > 45 ? '…' : '');
   }
 
-  await _saveSessions();
+  _saveSessions();
 }
 
-async function _saveSessions() {
+function _saveSessions() {
   // Keep only last 20 sessions to avoid bloat
   if (CS.sessions.length > 20) CS.sessions = CS.sessions.slice(-20);
-  await apiPost('/data/chatHistory', { value: CS.sessions }).catch(() => {});
+  setData('chatHistory', CS.sessions);
 }
 
 /* ── Scroll ── */

@@ -2,11 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none';"/>
+  <meta name="description" content="Collaborate, discuss and compete with peers in study groups."/>
+  <meta property="og:title" content="StudyAI — Study Groups"/>
+  <meta property="og:description" content="Collaborate, discuss and compete with peers in study groups."/>
+  <meta property="og:type" content="website"/>
+  <meta name="theme-color" content="#667eea"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>StudyAI — Study Groups</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👥</text></svg>"/>
   <link rel="stylesheet" href="assets/css/global.css"/>
   <link rel="stylesheet" href="assets/css/components.css"/>
+  <link rel="stylesheet" href="assets/css/mobile.css"/>
+  <!-- Dark Mode & Reading Mode Support -->
+  <script>
+    if (localStorage.getItem('sa_theme') !== 'light') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+    if (localStorage.getItem('sa_reading_mode') === 'true') {
+      document.documentElement.setAttribute('data-reading-mode', 'true');
+    }
+  </script>
   <style>
     .group-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r); padding:20px; transition:all .2s; }
     .group-card:hover { background:var(--bg-card-hover); transform:translateY(-2px); border-color:rgba(102,126,234,.25); box-shadow:0 8px 24px rgba(0,0,0,.2); }
@@ -35,7 +51,7 @@
     <div class="page-body">
       <div class="page-header">
         <div class="page-header-left"><h1>👥 Study Groups</h1><p>Collaborate, discuss and compete with peers</p></div>
-        <div class="page-header-right"><button class="btn btn-primary" onclick="openModal('modal-create-group')">+ Create Group</button></div>
+        <div class="page-header-right"><button class="btn btn-primary">+ Create Group</button></div>
       </div>
 
       <div class="tabs" id="gr-tabs">
@@ -51,7 +67,7 @@
         <div class="card">
           <div class="card-header">
             <span class="card-title">💬 Discussions</span>
-            <button class="btn btn-primary btn-sm" onclick="openModal('modal-post-disc')">+ Post Question</button>
+            <button class="btn btn-primary btn-sm">+ Post Question</button>
           </div>
           <div id="disc-list"></div>
         </div>
@@ -74,34 +90,41 @@
 <!-- Create Group -->
 <div class="modal-overlay" id="modal-create-group">
   <div class="modal">
-    <div class="modal-header"><span class="modal-title">👥 Create Group</span><button class="modal-close" onclick="closeModal('modal-create-group')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">👥 Create Group</span><button class="modal-close">✕</button></div>
     <div class="form-group"><label class="form-label">Group Name</label><input id="g-name" class="form-input" placeholder="e.g. OS Study Squad"/></div>
     <div class="form-group"><label class="form-label">Subject</label>
       <select id="g-subject" class="form-input"><option>OS</option><option>DBMS</option><option>DSA</option><option>CN</option><option>AI</option><option>Math</option><option>General</option></select>
     </div>
     <div class="form-group"><label class="form-label">Description</label><textarea id="g-desc" class="form-input" placeholder="What will this group study?"></textarea></div>
-    <button class="btn btn-primary btn-full" onclick="createGroup()">Create Group</button>
+    <button class="btn btn-primary btn-full">Create Group</button>
   </div>
 </div>
 
 <!-- Post Discussion -->
 <div class="modal-overlay" id="modal-post-disc">
   <div class="modal">
-    <div class="modal-header"><span class="modal-title">💬 Post a Question</span><button class="modal-close" onclick="closeModal('modal-post-disc')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">💬 Post a Question</span><button class="modal-close">✕</button></div>
     <div class="form-group"><label class="form-label">Question</label><textarea id="d-question" class="form-input" rows="3" placeholder="e.g. What is the difference between semaphore and mutex?"></textarea></div>
     <div class="form-group"><label class="form-label">Subject</label>
       <select id="d-subject" class="form-input"><option>OS</option><option>DBMS</option><option>DSA</option><option>CN</option><option>AI</option><option>Math</option></select>
     </div>
-    <button class="btn btn-primary btn-full" onclick="postDiscussion()">Post Question</button>
+    <button class="btn btn-primary btn-full">Post Question</button>
   </div>
 </div>
 
 <div id="toast-container"></div>
+<script src="assets/js/subjects.js"></script>
+<script src="assets/js/skeletons.js"></script>
 <script src="assets/js/auth.js"></script>
 <script src="assets/js/utils.js"></script>
 <script src="assets/js/sidebar.js"></script>
 <script src="assets/js/storage.js"></script>
 <script src="assets/js/groups.js"></script>
-<script>initPage('Study Groups').then(user => { if (user) initGroups(); });</script>
+<script>document.addEventListener('DOMContentLoaded', () => {
+    // Wire all interactive elements — events.js handles data-close, data-open, data-tab-target
+    // Page-specific wiring happens inside initGroups() via event delegation
+  });
+  initPage('Study Groups').then(user => { if (user) initGroups(); });</script>
+<script src="assets/js/events.js"></script>
 </body>
 </html>

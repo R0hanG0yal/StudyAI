@@ -2,208 +2,70 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none';"/>
+  <meta name="description" content="Distraction-free Pomodoro timer with session tracking and motivational quotes."/>
+  <meta property="og:title" content="StudyAI — Focus Mode"/>
+  <meta property="og:description" content="Distraction-free Pomodoro timer with session tracking and motivational quotes."/>
+  <meta property="og:type" content="website"/>
+  <meta name="theme-color" content="#667eea"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>StudyAI — Focus Mode</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>"/>
   <link rel="stylesheet" href="assets/css/global.css"/>
   <link rel="stylesheet" href="assets/css/components.css"/>
   <style>
-    /* ── Timer card ── */
-    .timer-card {
-      background    : linear-gradient(135deg,rgba(102,126,234,.08),rgba(240,147,251,.05));
-      border        : 1px solid rgba(102,126,234,.2);
-      border-radius : 24px;
-      padding       : 40px 32px;
-      text-align    : center;
-      position      : relative;
-      overflow      : hidden;
-    }
-    .timer-card::before {
-      content   : '';
-      position  : absolute;
-      inset     : -1px;
-      border-radius: 24px;
-      background: linear-gradient(135deg,rgba(102,126,234,.3),rgba(240,147,251,.2),rgba(79,172,254,.15));
-      z-index   : -1;
-      opacity   : .4;
-    }
-
-    /* SVG ring */
-    .ring-wrap {
-      position      : relative;
-      width         : 240px;
-      height        : 240px;
-      margin        : 0 auto 24px;
-    }
-    .ring-wrap svg { display:block; }
-    .ring-inner {
-      position  : absolute;
-      inset     : 0;
-      display   : flex;
-      flex-direction: column;
-      align-items   : center;
-      justify-content: center;
-    }
-    .timer-display {
-      font-family   : var(--font-display);
-      font-size     : 3.8rem;
-      font-weight   : 800;
-      letter-spacing: -.02em;
-      line-height   : 1;
-      background    : var(--grad-main);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .timer-type-lbl {
-      font-size     : .74rem;
-      font-weight   : 700;
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      color         : var(--text-muted);
-      margin-top    : 6px;
-    }
-
-    /* Preset buttons */
-    .preset-row {
-      display       : flex;
-      gap           : 8px;
-      justify-content:center;
-      flex-wrap     : wrap;
-    }
-    .preset-btn {
-      padding       : 6px 16px;
-      border-radius : 100px;
-      font-size     : .78rem;
-      font-weight   : 600;
-      cursor        : pointer;
-      border        : 1px solid var(--border);
-      background    : rgba(255,255,255,.06);
-      color         : var(--text-dim);
-      transition    : all .18s;
-      font-family   : var(--font);
-    }
-    .preset-btn:hover { background:rgba(102,126,234,.15); border-color:rgba(102,126,234,.3); color:#fff; }
-    .preset-btn.active{ background:var(--grad-1); border-color:transparent; color:#fff; box-shadow:0 4px 12px rgba(102,126,234,.35); }
-
-    /* Session history */
-    .sess-item {
-      display       : flex;
-      align-items   : center;
-      gap           : 10px;
-      padding       : 9px 12px;
-      background    : var(--bg-card);
-      border        : 1px solid var(--border);
-      border-radius : 10px;
-      margin-bottom : 7px;
-      transition    : all .18s;
-    }
-    .sess-item:hover { background:var(--bg-card-hover); }
-    .sess-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-
-    /* Motivational quote */
-    .quote-card {
-      background    : linear-gradient(135deg,rgba(102,126,234,.06),rgba(240,147,251,.04));
-      border        : 1px solid rgba(102,126,234,.15);
-      border-radius : 14px;
-      padding       : 18px 22px;
-      font-style    : italic;
-      color         : var(--text-dim);
-      font-size     : .88rem;
-      line-height   : 1.7;
-      text-align    : center;
-    }
-
+    .timer-card{background:linear-gradient(135deg,rgba(102,126,234,.08),rgba(240,147,251,.05));border:1px solid rgba(102,126,234,.2);border-radius:24px;padding:40px 32px;text-align:center;position:relative;overflow:hidden}
+    .ring-wrap{position:relative;width:240px;height:240px;margin:0 auto 24px}
+    .ring-wrap svg{display:block}
+    .ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .timer-display{font-family:var(--font-display);font-size:3.8rem;font-weight:800;letter-spacing:-.02em;line-height:1;background:var(--grad-main);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .timer-type-lbl{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted);margin-top:6px}
+    .preset-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+    .preset-btn{padding:6px 16px;border-radius:100px;font-size:.78rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text-dim);transition:all .18s;font-family:var(--font)}
+    .preset-btn:hover{background:rgba(102,126,234,.15);border-color:rgba(102,126,234,.3);color:#fff}
+    .preset-btn.active{background:var(--grad-1);border-color:transparent;color:#fff;box-shadow:0 4px 12px rgba(102,126,234,.35)}
+    .sess-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:7px}
+    .sess-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .quote-card{background:linear-gradient(135deg,rgba(102,126,234,.06),rgba(240,147,251,.04));border:1px solid rgba(102,126,234,.15);border-radius:14px;padding:18px 22px;font-style:italic;color:var(--text-dim);font-size:.88rem;line-height:1.7;text-align:center}
+    .day-stat{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+    .day-stat-val{font-family:var(--font-display);font-size:1.5rem;font-weight:800;color:var(--purple)}
+    .day-stat-lbl{font-size:.7rem;color:var(--text-muted);margin-top:4px}
     /* Fullscreen overlay */
-    .focus-overlay {
-      position      : fixed;
-      inset         : 0;
-      background    : #060810;
-      z-index       : 999;
-      display       : none;
-      flex-direction: column;
-      align-items   : center;
-      justify-content: center;
-      gap           : 0;
-    }
-    .focus-overlay.on { display:flex; }
-    .fo-close {
-      position:absolute; top:20px; right:20px;
-      background:none; border:none; color:var(--text-muted);
-      font-size:1.4rem; cursor:pointer; transition:.18s;
-    }
-    .fo-close:hover { color:var(--text); }
-    .fo-label {
-      font-family:var(--font-display); font-size:.78rem; font-weight:700;
-      letter-spacing:.18em; text-transform:uppercase; color:var(--text-muted);
-      margin-bottom:28px;
-    }
-    .fo-time {
-      font-family:var(--font-display); font-size:5rem; font-weight:800;
-      background:var(--grad-main); -webkit-background-clip:text;
-      -webkit-text-fill-color:transparent; background-clip:text;
-      margin-bottom:8px; line-height:1;
-    }
-    .fo-sub { font-size:.76rem; text-transform:uppercase; letter-spacing:.12em; color:var(--text-muted); margin-bottom:36px; }
-    .fo-ring-wrap { position:relative; width:260px; height:260px; margin:0 auto 36px; }
-    .fo-ring-inner { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-    .fo-actions { display:flex; gap:12px; margin-bottom:32px; }
-    .fo-stats { display:flex; gap:32px; opacity:.65; margin-bottom:24px; }
-    .fo-stat  { text-align:center; }
-    .fo-stat-val { font-family:var(--font-mono); font-size:1.1rem; font-weight:700; color:var(--purple); }
-    .fo-stat-lbl { font-size:.64rem; color:var(--text-muted); margin-top:2px; }
-    .fo-quote { font-size:.86rem; font-style:italic; color:var(--text-muted); max-width:340px; text-align:center; line-height:1.7; opacity:.75; }
-
-    /* Day stat boxes */
-    .day-stat {
-      background:var(--bg-card); border:1px solid var(--border);
-      border-radius:12px; padding:14px; text-align:center;
-    }
-    .day-stat-val { font-family:var(--font-display); font-size:1.5rem; font-weight:800; color:var(--purple); }
-    .day-stat-lbl { font-size:.7rem; color:var(--text-muted); margin-top:4px; }
+    .focus-overlay{position:fixed;inset:0;background:#060810;z-index:999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:0}
+    .focus-overlay.on{display:flex}
+    .fo-close{position:absolute;top:20px;right:20px;background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;transition:.18s}
+    .fo-time{font-family:var(--font-display);font-size:5rem;font-weight:800;background:var(--grad-main);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;line-height:1}
+    .fo-sub{font-size:.76rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted);margin-bottom:36px}
+    .fo-ring-wrap{position:relative;width:260px;height:260px;margin:0 auto 36px}
+    .fo-ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .fo-actions{display:flex;gap:12px;margin-bottom:32px}
+    .fo-stats{display:flex;gap:32px;opacity:.65;margin-bottom:24px}
+    .fo-stat{text-align:center}
+    .fo-stat-val{font-family:var(--font-mono);font-size:1.1rem;font-weight:700;color:var(--purple)}
+    .fo-stat-lbl{font-size:.64rem;color:var(--text-muted);margin-top:2px}
+    .fo-quote{font-size:.86rem;font-style:italic;color:var(--text-muted);max-width:340px;text-align:center;line-height:1.7;opacity:.75}
+    .fo-label{font-family:var(--font-display);font-size:.78rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--text-muted);margin-bottom:28px}
   </style>
 </head>
 <body>
 <div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
-
 <div class="app-layout" id="app-layout">
   <div class="main-content">
     <div class="page-body">
-
       <div class="page-header">
-        <div class="page-header-left">
-          <h1>⚡ Focus Mode</h1>
-          <p>Distraction-free Pomodoro sessions · Real-time tracking</p>
-        </div>
+        <div class="page-header-left"><h1>⚡ Focus Mode</h1><p>Distraction-free Pomodoro · Real-time tracking</p></div>
         <div class="page-header-right">
-          <button class="btn btn-primary" onclick="toggleOverlay()">
-            🖥️ Full Screen Focus
-          </button>
+          <!-- ✅ No inline onclick -->
+          <button class="btn btn-primary" id="btn-fullscreen">🖥️ Full Screen Focus</button>
         </div>
       </div>
 
       <div class="grid-2 mb-4">
-
-        <!-- Timer card -->
         <div class="timer-card">
           <div class="ring-wrap">
             <svg width="240" height="240" viewBox="0 0 240 240">
-              <circle cx="120" cy="120" r="108" fill="none"
-                stroke="rgba(255,255,255,.06)" stroke-width="8"/>
-              <circle cx="120" cy="120" r="108" fill="none"
-                stroke="url(#timerGrad)" stroke-width="8"
-                stroke-linecap="round"
-                stroke-dasharray="678.6"
-                stroke-dashoffset="0"
-                id="timer-ring"
-                style="transition:stroke-dashoffset .5s linear;transform:rotate(-90deg);transform-origin:center"/>
-              <defs>
-                <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%"   stop-color="#667eea"/>
-                  <stop offset="50%"  stop-color="#f093fb"/>
-                  <stop offset="100%" stop-color="#4facfe"/>
-                </linearGradient>
-              </defs>
+              <circle cx="120" cy="120" r="108" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="8"/>
+              <circle cx="120" cy="120" r="108" fill="none" stroke="url(#timerGrad)" stroke-width="8" stroke-linecap="round" stroke-dasharray="678.6" stroke-dashoffset="0" id="timer-ring" style="transition:stroke-dashoffset .5s linear;transform:rotate(-90deg);transform-origin:center"/>
+              <defs><linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#667eea"/><stop offset="50%" stop-color="#f093fb"/><stop offset="100%" stop-color="#4facfe"/></linearGradient></defs>
             </svg>
             <div class="ring-inner">
               <div class="timer-display" id="timer-display">25:00</div>
@@ -211,63 +73,46 @@
             </div>
           </div>
 
-          <!-- Control buttons -->
           <div class="flex gap-3 jcenter mb-4">
-            <button class="btn btn-primary" id="btn-start" onclick="startTimer()">▶ Start</button>
-            <button class="btn btn-secondary" id="btn-pause" onclick="pauseTimer()" style="display:none">⏸ Pause</button>
-            <button class="btn btn-secondary" onclick="resetTimer()">⟳ Reset</button>
+            <!-- ✅ No inline onclick -->
+            <button class="btn btn-primary"   id="btn-start-timer">▶ Start</button>
+            <button class="btn btn-secondary" id="btn-pause-timer" style="display:none">⏸ Pause</button>
+            <button class="btn btn-secondary" id="btn-reset-timer">⟳ Reset</button>
           </div>
 
-          <!-- Presets -->
           <div class="preset-row mb-4">
-            <button class="preset-btn active" onclick="setPreset(25,'focus',this)">25m Focus</button>
-            <button class="preset-btn"        onclick="setPreset(5,'break',this)">5m Break</button>
-            <button class="preset-btn"        onclick="setPreset(15,'long-break',this)">15m Long Break</button>
-            <button class="preset-btn"        onclick="setPreset(45,'focus',this)">45m Deep</button>
+            <!-- ✅ data attributes instead of inline onclick -->
+            <button class="preset-btn active" data-preset="25" data-type="focus">25m Focus</button>
+            <button class="preset-btn"        data-preset="5"  data-type="break">5m Break</button>
+            <button class="preset-btn"        data-preset="15" data-type="long-break">15m Long Break</button>
+            <button class="preset-btn"        data-preset="45" data-type="focus">45m Deep</button>
           </div>
 
-          <!-- Progress bar -->
           <div class="progress mb-3" style="height:6px">
-            <div class="progress-fill" id="timer-progress-bar"
-                 style="width:100%;background:var(--grad-1);border-radius:3px;transition:width .5s linear"></div>
+            <div class="progress-fill" id="timer-progress-bar" style="width:100%;background:var(--grad-1);border-radius:3px;transition:width .5s linear"></div>
           </div>
-
-          <!-- Fullscreen mini -->
-          <button class="btn btn-secondary btn-sm w-full" onclick="toggleOverlay()" style="justify-content:center">
-            ⚡ Open Full-Screen Mode
-          </button>
+          <button class="btn btn-secondary btn-sm w-full" id="btn-open-fullscreen" style="justify-content:center">⚡ Open Full-Screen Mode</button>
         </div>
 
-        <!-- Right panel: task + stats + quote -->
         <div style="display:flex;flex-direction:column;gap:14px">
-
-          <!-- Focus task selector -->
           <div class="card">
             <div class="card-title">📋 Focus Task</div>
-            <select id="focus-task" class="form-input mb-2">
-              <option value="">No task selected</option>
-            </select>
+            <select id="focus-task" class="form-input mb-2"><option value="">No task selected</option></select>
             <div class="text-xs text-muted">Select a task to track which subject you're studying</div>
           </div>
-
-          <!-- Today's stats -->
           <div class="card">
             <div class="card-title">💪 Today's Stats</div>
             <div class="grid-2" id="today-stats" style="gap:10px"></div>
           </div>
-
-          <!-- Motivation -->
           <div class="quote-card" id="quote-card">
             <div style="font-size:1.3rem;margin-bottom:8px">💫</div>
             <p id="quote-text">Every expert was once a beginner. Keep going!</p>
-            <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="newQuote()">
-              🔄 New Quote
-            </button>
+            <!-- ✅ No inline onclick -->
+            <button class="btn btn-secondary btn-sm" id="btn-new-quote" style="margin-top:12px">🔄 New Quote</button>
           </div>
         </div>
       </div>
 
-      <!-- Session history -->
       <div class="card">
         <div class="card-header">
           <span class="card-title">📈 Session History</span>
@@ -275,29 +120,19 @@
         </div>
         <div id="session-history"></div>
       </div>
-
     </div>
   </div>
 </div>
 
-<!-- ── FULL-SCREEN FOCUS OVERLAY ── -->
+<!-- Full-Screen Focus Overlay -->
 <div class="focus-overlay" id="focus-overlay">
-  <button class="fo-close" onclick="toggleOverlay()">✕</button>
+  <button class="fo-close" id="btn-fo-close">✕</button>
   <div class="fo-label" id="fo-label">FOCUS SESSION</div>
   <div class="fo-ring-wrap">
     <svg width="260" height="260" viewBox="0 0 260 260">
       <circle cx="130" cy="130" r="118" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8"/>
-      <circle cx="130" cy="130" r="118" fill="none" stroke="url(#foGrad)" stroke-width="8"
-        stroke-linecap="round" stroke-dasharray="741.4"
-        stroke-dashoffset="0" id="fo-ring"
-        style="transition:stroke-dashoffset .5s linear;transform:rotate(-90deg);transform-origin:center"/>
-      <defs>
-        <linearGradient id="foGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%"   stop-color="#667eea"/>
-          <stop offset="50%"  stop-color="#f093fb"/>
-          <stop offset="100%" stop-color="#4facfe"/>
-        </linearGradient>
-      </defs>
+      <circle cx="130" cy="130" r="118" fill="none" stroke="url(#foGrad)" stroke-width="8" stroke-linecap="round" stroke-dasharray="741.4" stroke-dashoffset="0" id="fo-ring" style="transition:stroke-dashoffset .5s linear;transform:rotate(-90deg);transform-origin:center"/>
+      <defs><linearGradient id="foGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#667eea"/><stop offset="50%" stop-color="#f093fb"/><stop offset="100%" stop-color="#4facfe"/></linearGradient></defs>
     </svg>
     <div class="fo-ring-inner">
       <div class="fo-time" id="fo-time">25:00</div>
@@ -305,10 +140,11 @@
     </div>
   </div>
   <div class="fo-actions">
-    <button class="btn btn-primary" id="fo-start" onclick="startTimer()">▶ Start</button>
-    <button class="btn btn-secondary" id="fo-pause" onclick="pauseTimer()" style="display:none">⏸ Pause</button>
-    <button class="btn btn-secondary" onclick="resetTimer()">⟳ Reset</button>
-    <button class="btn btn-secondary" onclick="skipSession()">⏭ Skip</button>
+    <!-- ✅ No inline onclick -->
+    <button class="btn btn-primary"   id="fo-btn-start">▶ Start</button>
+    <button class="btn btn-secondary" id="fo-btn-pause" style="display:none">⏸ Pause</button>
+    <button class="btn btn-secondary" id="fo-btn-reset">⟳ Reset</button>
+    <button class="btn btn-secondary" id="fo-btn-skip">⏭ Skip</button>
   </div>
   <div class="fo-stats">
     <div class="fo-stat"><div class="fo-stat-val" id="fo-sessions">0</div><div class="fo-stat-lbl">Sessions</div></div>
@@ -324,7 +160,33 @@
 <script src="assets/js/sidebar.js"></script>
 <script src="assets/js/storage.js"></script>
 <script src="assets/js/focus.js"></script>
+<script src="assets/js/events.js"></script>
 <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Timer controls
+    document.getElementById('btn-start-timer')?.addEventListener('click', startTimer);
+    document.getElementById('btn-pause-timer')?.addEventListener('click', pauseTimer);
+    document.getElementById('btn-reset-timer')?.addEventListener('click', resetTimer);
+    document.getElementById('btn-new-quote')?.addEventListener('click', newQuote);
+
+    // Fullscreen
+    document.getElementById('btn-fullscreen')?.addEventListener('click', toggleOverlay);
+    document.getElementById('btn-open-fullscreen')?.addEventListener('click', toggleOverlay);
+    document.getElementById('btn-fo-close')?.addEventListener('click', toggleOverlay);
+    document.getElementById('fo-btn-start')?.addEventListener('click', startTimer);
+    document.getElementById('fo-btn-pause')?.addEventListener('click', pauseTimer);
+    document.getElementById('fo-btn-reset')?.addEventListener('click', resetTimer);
+    document.getElementById('fo-btn-skip')?.addEventListener('click', skipSession);
+
+    // Preset buttons — data-preset replaces inline onclick
+    document.querySelectorAll('[data-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-preset]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        setPreset(parseInt(btn.dataset.preset), btn.dataset.type);
+      });
+    });
+  });
   initPage('Focus Mode').then(user => { if (user) initFocus(); });
 </script>
 </body>

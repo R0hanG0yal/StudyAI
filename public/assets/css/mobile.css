@@ -1,0 +1,221 @@
+/* ============================================================
+   STUDYAI — mobile.css  (Part 6)
+   Responsive fixes for all pages.
+   Include after global.css and components.css on every page.
+   ============================================================ */
+
+/* ════════════════════════════════════════════════════════════
+   TABLET  (≤ 1024px)
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+
+  /* Sidebar: collapse to icon-only at tablet */
+  .sidebar { width: 64px; }
+  .sidebar .nav-item span:last-child,
+  .sidebar .nav-section-label,
+  .sidebar .user-name,
+  .sidebar .user-course,
+  .sidebar .sidebar-logo-text { display: none; }
+  .sidebar .nav-item { justify-content: center; padding: 10px; }
+  .sidebar .nav-icon { width: auto; }
+  .sidebar .user-avatar { margin: 0 auto; }
+  .sidebar .sidebar-user { justify-content: center; padding: 10px; }
+
+  .main-content { --sidebar-w: 64px; }
+
+  /* Flashcard scene */
+  .fc-scene { height: 220px; }
+
+  /* Focus timer ring */
+  .ring-wrap { width: 200px; height: 200px; }
+
+  /* Chat layout */
+  .chat-layout { grid-template-columns: 200px 1fr; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE  (≤ 768px)
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* ── Layout ── */
+  .app-layout { flex-direction: column; }
+  .sidebar {
+    position: fixed;
+    width: 240px;
+    left: -260px;
+    height: 100vh;
+    z-index: 200;
+    transition: left .25s ease;
+  }
+  .sidebar.open { left: 0; }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 199; }
+  .sidebar-overlay.show { display: block; }
+
+  /* Restore hidden labels on mobile drawer */
+  .sidebar .nav-item span:last-child,
+  .sidebar .nav-section-label,
+  .sidebar .user-name,
+  .sidebar .user-course,
+  .sidebar .sidebar-logo-text { display: block; }
+  .sidebar .nav-item { justify-content: flex-start; padding: 9px 12px; }
+  .sidebar .sidebar-user { justify-content: flex-start; padding: 9px 10px; }
+
+  /* Show hamburger */
+  #menu-btn { display: flex !important; }
+
+  /* ── Grids ── */
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+
+  /* ── Page body ── */
+  .page-body { padding: 14px; }
+  .topbar { padding: 0 12px; }
+
+  /* ── Page header ── */
+  .page-header { flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
+  .page-header-left h1 { font-size: 1.25rem; }
+  .page-header-right { width: 100%; flex-wrap: wrap; }
+  .page-header-right .btn { font-size: .76rem; padding: 6px 12px; }
+
+  /* ── Stat grid ── */
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat-val  { font-size: 1.3rem; }
+
+  /* ── Tabs ── */
+  .tabs { gap: 2px; padding: 3px; overflow-x: auto; flex-wrap: nowrap; }
+  .tab  { padding: 6px 10px; font-size: .74rem; flex-shrink: 0; }
+
+  /* ── Notes page ── */
+  .notes-layout { grid-template-columns: 1fr; }
+  .notes-panel  { display: none; }
+  .notes-panel.show { display: flex; position: fixed; inset: 0; z-index: 150; background: var(--bg-primary); }
+  .editor-toolbar { gap: 2px; padding: 6px 10px; }
+  .tb-btn { padding: 4px 7px; font-size: .72rem; }
+
+  /* ── Chat page ── */
+  .chat-layout { grid-template-columns: 1fr; }
+  .chat-sidebar { display: none; }
+  .chat-toolbar { padding: 8px 12px; gap: 6px; }
+  .chat-messages { padding: 12px; gap: 10px; }
+  .msg-row { max-width: 95%; }
+  .chat-input-area { padding: 8px 12px; }
+
+  /* ── Quiz page ── */
+  .quiz-progress-bar { width: 100% !important; }
+
+  /* ── Focus page ── */
+  .ring-wrap { width: 180px; height: 180px; }
+  .timer-display { font-size: 2.8rem; }
+  .focus-overlay .fo-time { font-size: 3.5rem; }
+  .fo-ring-wrap { width: 200px; height: 200px; }
+
+  /* ── Flashcards ── */
+  .fc-scene { height: 200px; }
+  .fc-text  { font-size: .9rem; }
+  .fc-mini-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* ── Planner ── */
+  .cal-day { font-size: .72rem; }
+
+  /* ── Dashboard welcome ── */
+  .welcome-greeting { font-size: 1.3rem; }
+  .welcome-banner   { padding: 20px; }
+  .welcome-actions  { flex-wrap: wrap; }
+  .quick-add-grid   { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* ── Modals ── */
+  .modal    { padding: 18px; max-height: 95vh; margin: 10px; width: calc(100% - 20px); }
+  .modal-lg { max-width: calc(100% - 20px); }
+
+  /* ── Analytics charts ── */
+  .chart-card canvas { max-height: 180px; }
+
+  /* ── Summaries ── */
+  .tabs { justify-content: flex-start; }
+
+  /* ── Settings ── */
+  .settings-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .accent-dots  { flex-wrap: wrap; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   SMALL MOBILE  (≤ 480px)
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .stat-grid    { grid-template-columns: 1fr 1fr; }
+  .stat-val     { font-size: 1.1rem; }
+  .page-body    { padding: 10px; }
+
+  .btn          { padding: 7px 12px; font-size: .78rem; }
+  .btn-sm       { padding: 5px 10px; font-size: .72rem; }
+
+  /* Planner calendar */
+  .cal-day      { font-size: .65rem; border-radius: 6px; }
+  .cal-wd       { font-size: .56rem; }
+
+  /* Focus overlay */
+  .fo-stats     { gap: 16px; }
+  .fo-stat-val  { font-size: .9rem; }
+
+  /* Toast */
+  #toast-container { right: 10px; left: 10px; bottom: 10px; }
+  .toast        { max-width: 100%; }
+
+  /* Dashboard */
+  .welcome-banner  { padding: 16px; border-radius: 14px; }
+  .welcome-greeting { font-size: 1.15rem; }
+  .quick-add-item  { padding: 12px 6px; }
+  .quick-add-icon  { font-size: 1.2rem; }
+  .quick-add-label { font-size: .68rem; }
+
+  /* Chat */
+  .suggestion-chip { font-size: .68rem; padding: 4px 8px; }
+
+  /* Notes editor */
+  .editor-meta { flex-wrap: wrap; gap: 6px; }
+  .note-title-input { font-size: .9rem; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   LANDSCAPE PHONE  (short viewport)
+   ════════════════════════════════════════════════════════════ */
+@media (max-height: 600px) and (max-width: 768px) {
+  .focus-overlay .fo-ring-wrap { width: 140px; height: 140px; margin-bottom: 16px; }
+  .focus-overlay .fo-time      { font-size: 2.5rem; margin-bottom: 4px; }
+  .focus-overlay .fo-sub       { margin-bottom: 16px; }
+  .focus-overlay .fo-quote     { display: none; }
+  .panel { padding: 24px 18px; margin: 20px auto; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   PRINT
+   ════════════════════════════════════════════════════════════ */
+@media print {
+  .sidebar, .topbar, #toast-container, .modal-overlay,
+  .focus-overlay, .btn, .chat-input-area, .chat-toolbar { display: none !important; }
+  .main-content { padding: 0; }
+  .page-body    { padding: 20px; }
+  .card         { box-shadow: none; border: 1px solid #ddd; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ACCESSIBILITY
+   ════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+  .orb { animation: none !important; }
+}
+
+/* Focus visible for keyboard users */
+:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+}
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

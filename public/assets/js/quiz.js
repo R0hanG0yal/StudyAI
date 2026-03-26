@@ -343,6 +343,10 @@ async function _finishQuiz() {
   const {verdict,msg} = _verdict(pct);
   document.getElementById('score-verdict').textContent = verdict;
   document.getElementById('score-message').textContent = msg;
+
+  if (pct >= 75 && typeof burstConfetti === 'function') {
+    burstConfetti();
+  }
 }
 
 function _verdict(pct) {

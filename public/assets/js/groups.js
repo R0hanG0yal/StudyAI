@@ -1,345 +1,344 @@
 /* ============================================================
-   STUDYAI — STUDY GROUPS
-   File: public/assets/js/groups.js
+   STUDYAI — groups.js  (Part 10)
+   Functional study groups — localStorage based (single-user).
+   Discussion Q&A, leaderboard from real quiz data, challenges.
    ============================================================ */
-'use strict';
 
-const GR = { data:{} };
-
-const GRAD_PIPS = [
-  'linear-gradient(135deg,#667eea,#764ba2)',
-  'linear-gradient(135deg,#f093fb,#f5576c)',
-  'linear-gradient(135deg,#4facfe,#00f2fe)',
-  'linear-gradient(135deg,#43e97b,#38f9d7)',
-];
+const GR = {
+  groups: [], discussions: [], challenges: [],
+  currentTab: 'groups',
+};
 
 async function initGroups() {
-  GR.data = await apiGet('/data').catch(() => ({}));
-  _wireTabs();
-  renderGroupsGrid();
+  // Inject page structure
+  const layout = document.querySelector('.app-layout .main-content');
+  if (layout && !document.getElementById('gr-page-body')) {
+    layout.innerHTML = `
+      <div class="page-body" id="gr-page-body">
+        <div class="page-header">
+          <div class="page-header-left"><h1>👥 Study Groups</h1><p>Collaborate, discuss and track your progress</p></div>
+          <div class="page-header-right"><button class="btn btn-primary" id="btn-create-group">+ Create Group</button></div>
+        </div>
+
+        <div class="tabs" id="gr-tabs">
+          <div class="tab active" data-gr-tab="groups">👥 My Groups</div>
+          <div class="tab" data-gr-tab="discuss">💬 Discussions</div>
+          <div class="tab" data-gr-tab="leaderboard">🏆 Leaderboard</div>
+          <div class="tab" data-gr-tab="challenges">⚔️ Challenges</div>
+        </div>
+
+        <div id="gv-groups"><div class="grid-3" id="groups-grid"></div></div>
+        <div id="gv-discuss" style="display:none">
+          <div class="card">
+            <div class="card-header"><span class="card-title">💬 Discussions</span><button class="btn btn-primary btn-sm" id="btn-post-disc">+ Post Question</button></div>
+            <div id="disc-list"></div>
+          </div>
+        </div>
+        <div id="gv-leaderboard" style="display:none">
+          <div class="card"><div class="card-title">🏆 Your Subject Leaderboard</div><div id="lb-list"></div></div>
+        </div>
+        <div id="gv-challenges" style="display:none">
+          <div class="card">
+            <div class="card-header"><span class="card-title">⚔️ Study Challenges</span><span class="badge badge-orange">Active</span></div>
+            <div id="challenges-list"></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Load data from server via storage.js
+  await loadAllData();
+  GR.groups      = getOrDefault('groups', []);
+  GR.discussions = getOrDefault('discussions', []);
+  GR.challenges  = getOrDefault('challenges', []);
+
+  // Seed default challenges if empty
+  if (!GR.challenges.length) {
+    GR.challenges = [
+      { id: 'c1', title: '7-Day Study Streak',     desc:'Study every day for 7 days', points:100, type:'streak',   target:7,  progress:0, joined:false },
+      { id: 'c2', title: '5 Quizzes This Week',    desc:'Complete 5 quizzes this week', points:75, type:'quiz',    target:5,  progress:0, joined:false },
+      { id: 'c3', title: '50 Flashcards Reviewed', desc:'Review 50 flashcards',        points:60, type:'flash',   target:50, progress:0, joined:false },
+      { id: 'c4', title: 'Perfect Quiz Score',     desc:'Score 100% on any quiz',       points:150,type:'perfect', target:1,  progress:0, joined:false },
+    ];
+    _saveChallenges();
+  }
+
+  // Bind tab events
+  document.querySelectorAll('[data-gr-tab]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('[data-gr-tab]').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      ['groups','discuss','leaderboard','challenges'].forEach(v => {
+        const el = document.getElementById(`gv-${v}`);
+        if (el) el.style.display = v === tab.dataset.grTab ? 'block' : 'none';
+      });
+      GR.currentTab = tab.dataset.grTab;
+      if (v => v === 'leaderboard') renderLeaderboard();
+      renderTab(tab.dataset.grTab);
+    });
+  });
+
+  document.getElementById('btn-create-group')?.addEventListener('click', showCreateGroupModal);
+  document.getElementById('btn-post-disc')?.addEventListener('click', showPostDiscModal);
+
+  // Initial render
+  renderTab('groups');
+  _updateChallengeProgress();
 }
 
-/* ── Tabs ── */
-function _wireTabs() {
-  document.querySelectorAll('#gr-tabs .tab').forEach(tab => {
-    tab.onclick = () => {
-      document.querySelectorAll('#gr-tabs .tab').forEach(t=>t.classList.remove('active'));
-      tab.classList.add('active');
-      const v = tab.dataset.gv;
-      ['groups','discuss','leaderboard','challenges'].forEach(x=>{
-        const el=document.getElementById('gv-'+x);
-        if(el) el.style.display = x===v?'block':'none';
-      });
-      if(v==='groups')      renderGroupsGrid();
-      if(v==='discuss')     renderDiscussions();
-      if(v==='leaderboard') renderLeaderboard();
-      if(v==='challenges')  renderChallenges();
-    };
+// ── Tab renders ───────────────────────────────────────────
+function renderTab(tab) {
+  if (tab === 'groups')      renderGroups();
+  if (tab === 'discuss')     renderDiscussions();
+  if (tab === 'leaderboard') renderLeaderboard();
+  if (tab === 'challenges')  renderChallenges();
+}
+
+// ── Groups ────────────────────────────────────────────────
+function renderGroups() {
+  const el = document.getElementById('groups-grid');
+  if (!el) return;
+  if (!GR.groups.length) {
+    el.innerHTML = `<div class="card" style="grid-column:1/-1;text-align:center;padding:40px">
+      <div style="font-size:3rem;margin-bottom:14px;opacity:.3">👥</div>
+      <div style="font-weight:700;margin-bottom:8px">No groups yet</div>
+      <div class="text-sm text-muted mb-4">Create your first study group to collaborate with friends.</div>
+      <button class="btn btn-primary" id="btn-create-first">+ Create Group</button>
+    </div>`;
+    document.getElementById('btn-create-first')?.addEventListener('click', showCreateGroupModal);
+    return;
+  }
+  el.innerHTML = GR.groups.map(g => `
+    <div class="card" style="cursor:pointer;transition:all .2s" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''">
+      <div style="font-size:2rem;margin-bottom:10px">${g.emoji || '📚'}</div>
+      <div style="font-weight:700;margin-bottom:6px">${escapeHtml(g.name)}</div>
+      <div class="badge badge-purple mb-3">${escapeHtml(g.subject)}</div>
+      <div class="text-sm text-muted mb-3">${escapeHtml(g.desc || 'No description')}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="text-xs text-muted">Created ${timeAgo(g.created)}</span>
+        <button class="btn btn-danger btn-sm" data-delete-group="${g.id}">Leave</button>
+      </div>
+    </div>`).join('');
+
+  el.querySelectorAll('[data-delete-group]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      GR.groups = GR.groups.filter(g => g.id !== btn.dataset.deleteGroup);
+      _saveGroups();
+      renderGroups();
+    });
   });
 }
 
-/* ════════════════════════════════════════════════════════════
-   GROUPS GRID
-   ════════════════════════════════════════════════════════════ */
-function renderGroupsGrid() {
-  const groups = GR.data.groups || [];
-  const el     = document.getElementById('groups-grid');
-  if (!el) return;
-
-  if (!groups.length) {
-    el.innerHTML = `<div style="grid-column:1/-1">${emptyState('👥','No groups yet','Create your first study group!')}</div>`;
-    return;
-  }
-
-  el.innerHTML = groups.map(g => {
-    const members  = g.members || [];
-    const pipsHTML = members.slice(0,4).map((m,i)=>
-      `<div class="mpip" style="background:${GRAD_PIPS[i%4]}" title="${escHtml(m)}">${m.charAt(0).toUpperCase()}</div>`
-    ).join('') + (members.length>4
-      ? `<div class="mpip" style="background:rgba(255,255,255,.1);color:var(--text-muted)">+${members.length-4}</div>`
-      : '');
-
-    return `
-      <div class="group-card">
-        <div class="group-emoji">${g.emoji||'📚'}</div>
-        <div class="font-bold mb-1">${escHtml(g.name)}</div>
-        <div class="text-xs text-dim clamp-2 mb-3" style="line-height:1.5">${escHtml(g.description||'')}</div>
-        <div class="flex items-center between mb-3">
-          <div class="mpips">${pipsHTML}</div>
-          <span class="badge badge-purple">${escHtml(g.subject)}</span>
-        </div>
-        <div class="flex gap-3 text-xs text-muted mb-3">
-          <span>💬 ${g.discussions||0}</span>
-          <span>📄 ${g.sharedNotes||0}</span>
-          <span>👥 ${members.length}</span>
-        </div>
-        <div class="flex gap-2">
-          <button class="btn btn-primary btn-sm flex-1" onclick="enterGroup('${g.id}')">Enter →</button>
-          <button class="btn btn-secondary btn-sm" onclick="deleteGroup('${g.id}')">🗑️</button>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function enterGroup(id) {
-  const g = (GR.data.groups||[]).find(x=>x.id===id);
-  if (!g) return;
-  document.querySelectorAll('#gr-tabs .tab').forEach(t=>t.classList.remove('active'));
-  const dt = document.querySelector('#gr-tabs .tab[data-gv="discuss"]');
-  if (dt) dt.classList.add('active');
-  ['groups','challenges','leaderboard'].forEach(v=>{const el=document.getElementById('gv-'+v);if(el)el.style.display='none';});
-  const discEl = document.getElementById('gv-discuss');
-  if (discEl) discEl.style.display='block';
-  renderDiscussions();
-  showToast(`Entered ${g.name} 👥`,'info');
-}
-
-async function createGroup() {
-  const name = document.getElementById('g-name')?.value.trim();
-  if (!name) return showToast('Group name is required.','error');
-  const sub  = document.getElementById('g-subject')?.value||'General';
-  const emojiMap = {OS:'💻',DBMS:'🗄️',DSA:'⚡',CN:'🌐',AI:'🤖',Math:'📐',General:'📚'};
-  const user = getUser();
-
-  GR.data.groups = [...(GR.data.groups||[]),{
-    id:genId(), name, subject:sub,
-    description:document.getElementById('g-desc')?.value.trim()||'',
-    emoji:emojiMap[sub]||'📚',
-    members:[user?.name||'You'],
-    discussions:0, sharedNotes:0, created:Date.now(),
-  }];
-  await apiPost('/data/groups',{value:GR.data.groups});
-  closeModal('modal-create-group');
-  document.getElementById('g-name').value='';
-  document.getElementById('g-desc').value='';
-  renderGroupsGrid();
-  showToast('Group created!','success');
-}
-
-async function deleteGroup(id) {
-  if (!confirm('Delete this group?')) return;
-  GR.data.groups = (GR.data.groups||[]).filter(g=>g.id!==id);
-  await apiPost('/data/groups',{value:GR.data.groups});
-  renderGroupsGrid();
-  showToast('Group deleted.','info');
-}
-
-/* ════════════════════════════════════════════════════════════
-   DISCUSSIONS
-   ════════════════════════════════════════════════════════════ */
+// ── Discussions ───────────────────────────────────────────
 function renderDiscussions() {
-  const discs = (GR.data.discussions||[]).sort((a,b)=>b.time-a.time);
-  const el    = document.getElementById('disc-list');
+  const el = document.getElementById('disc-list');
   if (!el) return;
-
-  if (!discs.length) {
-    el.innerHTML = emptyState('💬','No discussions yet','Be the first to post a question!');
+  if (!GR.discussions.length) {
+    el.innerHTML = '<div class="text-sm text-muted" style="padding:20px;text-align:center">No discussions yet. Post the first question!</div>';
     return;
   }
-
-  el.innerHTML = discs.map(d=>`
-    <div class="disc-item" id="disc-${d.id}">
-      <div class="disc-q">${escHtml(d.question)}</div>
-      ${d.bestAnswer?`<div class="best-ans"><span style="font-size:.67rem;font-weight:700;display:block;margin-bottom:3px">✅ Best Answer</span>${escHtml(d.bestAnswer)}</div>`:''}
-      <div class="disc-meta">
-        <span>👤 ${escHtml(d.author)}</span>
-        <span class="badge badge-purple" style="font-size:.62rem">${escHtml(d.subject)}</span>
-        <span>💬 ${d.answers||0} answers</span>
-        <span>👍 ${d.upvotes||0}</span>
-        <span>${timeAgo(d.time)}</span>
+  el.innerHTML = GR.discussions.slice().reverse().map(d => `
+    <div class="card mb-3" style="border-radius:12px">
+      <div style="font-size:.86rem;font-weight:600;margin-bottom:6px">${escapeHtml(d.question)}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <span class="badge badge-purple">${escapeHtml(d.subject)}</span>
+        <span class="text-xs text-muted">${timeAgo(d.created)}</span>
       </div>
-      <div class="flex gap-2 mt-3 flex-wrap">
-        <button class="btn btn-secondary btn-sm" onclick="upvoteDisc('${d.id}')">👍 Upvote</button>
-        <button class="btn btn-secondary btn-sm" onclick="toggleReplyBox('${d.id}')">💬 Reply</button>
-        <button class="btn btn-secondary btn-sm" onclick="askAIAbout('${escAttr(d.question)}')">🤖 Ask AI</button>
-        ${d.author===(getUser()?.name||'')?`<button class="btn btn-secondary btn-sm" onclick="deleteDisc('${d.id}')">🗑️</button>`:''}
-      </div>
-      <div class="reply-box" id="reply-${d.id}">
-        <textarea id="reply-txt-${d.id}" class="form-input mt-2" rows="2" placeholder="Write your answer…"></textarea>
-        <div class="flex gap-2 mt-2">
-          <button class="btn btn-primary btn-sm" onclick="submitReply('${d.id}')">Post Reply</button>
-          <button class="btn btn-secondary btn-sm" onclick="toggleReplyBox('${d.id}')">Cancel</button>
-        </div>
+      ${d.answers?.length ? `
+        <div style="background:rgba(67,233,123,.06);border:1px solid rgba(67,233,123,.15);border-radius:10px;padding:10px 14px;font-size:.82rem;color:var(--green);margin-bottom:10px">
+          <strong>Best answer:</strong> ${escapeHtml(d.answers[0])}
+        </div>` : ''}
+      <div style="display:flex;gap:8px">
+        <input class="form-input" style="flex:1;font-size:.82rem" placeholder="Add your answer…" id="ans-inp-${d.id}"/>
+        <button class="btn btn-secondary btn-sm" data-answer-to="${d.id}">Reply</button>
       </div>
     </div>`).join('');
+
+  el.querySelectorAll('[data-answer-to]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inp = document.getElementById(`ans-inp-${btn.dataset.answerTo}`);
+      const ans = inp?.value.trim();
+      if (!ans) return;
+      const disc = GR.discussions.find(d => d.id === btn.dataset.answerTo);
+      if (disc) {
+        if (!disc.answers) disc.answers = [];
+        disc.answers.unshift(ans);
+        _saveDiscussions();
+        renderDiscussions();
+        showToast('Answer posted!', 'success');
+      }
+    });
+  });
 }
 
-async function postDiscussion() {
-  const q = document.getElementById('d-question')?.value.trim();
-  if (!q) return showToast('Question is required.','error');
+// ── Leaderboard (from real quiz data) ────────────────────
+async function renderLeaderboard() {
+  const el = document.getElementById('lb-list');
+  if (!el) return;
+  const data = await getData();
+  const quizzes = data.quizzes || [];
+
+  const bySubject = {};
+  quizzes.forEach(q => {
+    const s = q.subject || 'General';
+    if (!bySubject[s]) bySubject[s] = { subject:s, best:0, avg:0, count:0, scores:[] };
+    bySubject[s].scores.push(q.score||0);
+    bySubject[s].best = Math.max(bySubject[s].best, q.score||0);
+    bySubject[s].count++;
+  });
+  Object.values(bySubject).forEach(s => { s.avg = Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length); });
+
+  const sorted = Object.values(bySubject).sort((a,b) => b.avg - a.avg);
   const user = getUser();
 
-  GR.data.discussions = [...(GR.data.discussions||[]),{
-    id:genId(), question:q,
-    subject:document.getElementById('d-subject')?.value||'General',
-    author:user?.name||'You',
-    upvotes:0, answers:0, time:Date.now(), bestAnswer:null,
-  }];
-  await apiPost('/data/discussions',{value:GR.data.discussions});
-  closeModal('modal-post-disc');
-  document.getElementById('d-question').value='';
-  renderDiscussions();
-  showToast('Question posted!','success');
+  if (!sorted.length) { el.innerHTML = '<div class="text-sm text-muted" style="padding:20px">Take quizzes to appear on the leaderboard!</div>'; return; }
+
+  el.innerHTML = `
+    <div style="margin-bottom:12px;padding:12px 14px;background:rgba(102,126,234,.08);border:1px solid rgba(102,126,234,.15);border-radius:12px;font-size:.82rem">
+      📊 Your personal leaderboard based on real quiz performance. Share your scores to compete with friends!
+    </div>` +
+    sorted.map((s, i) => {
+      const medal = ['🥇','🥈','🥉'][i] || `#${i+1}`;
+      const col = s.avg >= 80 ? 'var(--green)' : s.avg >= 60 ? 'var(--orange)' : 'var(--red)';
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;margin-bottom:4px;background:rgba(255,255,255,.03)">
+          <span style="font-size:1.1rem;width:32px;text-align:center">${medal}</span>
+          <div style="flex:1">
+            <div style="font-size:.86rem;font-weight:600">${s.subject}</div>
+            <div class="text-xs text-muted">${s.count} quiz${s.count!==1?'zes':''} taken</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:var(--font-mono);font-weight:700;color:${col}">${s.avg}%</div>
+            <div class="text-xs text-muted">avg · best ${s.best}%</div>
+          </div>
+        </div>`;
+    }).join('');
 }
 
-async function upvoteDisc(id) {
-  const discs = GR.data.discussions||[];
-  const idx   = discs.findIndex(d=>d.id===id);
-  if (idx<0) return;
-  discs[idx].upvotes = (discs[idx].upvotes||0)+1;
-  GR.data.discussions=discs;
-  await apiPost('/data/discussions',{value:discs});
-  renderDiscussions();
-}
-
-function toggleReplyBox(id) {
-  const el = document.getElementById('reply-'+id);
-  if (el) el.classList.toggle('open');
-}
-
-async function submitReply(id) {
-  const ta  = document.getElementById('reply-txt-'+id);
-  const ans = ta?.value.trim();
-  if (!ans) return showToast('Reply cannot be empty.','error');
-  const discs = GR.data.discussions||[];
-  const idx   = discs.findIndex(d=>d.id===id);
-  if (idx<0) return;
-  discs[idx].answers    = (discs[idx].answers||0)+1;
-  discs[idx].bestAnswer = discs[idx].bestAnswer||ans;
-  GR.data.discussions   = discs;
-  await apiPost('/data/discussions',{value:discs});
-  renderDiscussions();
-  showToast('Reply posted!','success');
-}
-
-async function deleteDisc(id) {
-  GR.data.discussions = (GR.data.discussions||[]).filter(d=>d.id!==id);
-  await apiPost('/data/discussions',{value:GR.data.discussions});
-  renderDiscussions();
-  showToast('Removed.','info');
-}
-
-function askAIAbout(question) {
-  localStorage.setItem('sai_chat_prefill', question);
-  window.location.href='/chat.html';
-}
-
-/* ════════════════════════════════════════════════════════════
-   LEADERBOARD
-   ════════════════════════════════════════════════════════════ */
-function renderLeaderboard() {
-  const el    = document.getElementById('lb-list');
-  if (!el) return;
-  const user  = getUser();
-  const qr    = GR.data.quizResults||[];
-  const myAvg = qr.length ? Math.round(qr.reduce((s,r)=>s+r.pct,0)/qr.length) : 0;
-  const myStr = (GR.data.streak||{current:0}).current;
-  const myXP  = myAvg + myStr*2;
-
-  const peers = [
-    {name:'Priya Sharma',   xp:94,  avg:88, streak:12},
-    {name:'Arjun Mehta',    xp:89,  avg:82, streak:9},
-    {name:'Neha Singh',     xp:85,  avg:78, streak:11},
-    {name:'Vikram Rao',     xp:80,  avg:75, streak:7},
-    {name:'Anjali Gupta',   xp:76,  avg:71, streak:8},
-    {name:'Rahul Verma',    xp:70,  avg:65, streak:5},
-    {name:'Sana Khan',      xp:65,  avg:60, streak:4},
-  ];
-
-  const board = [...peers, {name:user?.name||'You', xp:myXP, avg:myAvg, streak:myStr, isYou:true}]
-    .sort((a,b)=>b.xp-a.xp).slice(0,9);
-
-  const medals = ['🥇','🥈','🥉'];
-  el.innerHTML = board.map((p,i)=>`
-    <div class="lb-row ${p.isYou?'':''}">
-      <div class="lb-rank">${medals[i]||'#'+(i+1)}</div>
-      <div class="user-avatar" style="width:28px;height:28px;font-size:.7rem;border-radius:8px;flex-shrink:0">${p.name.charAt(0).toUpperCase()}</div>
-      <div style="flex:1">
-        <div class="font-bold text-sm">${escHtml(p.name)} ${p.isYou?'<span class="badge badge-purple" style="font-size:.6rem">You</span>':''}</div>
-        <div class="text-xs text-muted">${p.avg}% avg · ${p.streak}🔥</div>
-      </div>
-      <div class="lb-score">${p.xp} XP</div>
-    </div>`).join('');
-}
-
-/* ════════════════════════════════════════════════════════════
-   CHALLENGES
-   ════════════════════════════════════════════════════════════ */
+// ── Challenges ────────────────────────────────────────────
 function renderChallenges() {
   const el = document.getElementById('challenges-list');
   if (!el) return;
-  const qr   = GR.data.quizResults||[];
-  const notes= GR.data.notes||[];
-  const fcs  = GR.data.flashcards||[];
-  const sess = GR.data.sessions||[];
-  const str  = (GR.data.streak||{current:0}).current;
+  el.innerHTML = GR.challenges.map(c => `
+    <div class="card mb-3" style="border-radius:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-weight:700;font-size:.92rem">${c.title}</div>
+          <div class="text-sm text-muted">${c.desc}</div>
+        </div>
+        <div class="badge badge-orange">${c.points} XP</div>
+      </div>
+      <div class="progress mb-2" style="height:8px">
+        <div class="progress-fill" style="width:${Math.min(100, Math.round(c.progress/c.target*100))}%;background:${c.joined?'var(--grad-1)':'rgba(255,255,255,.1)'}"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="text-xs text-muted">${c.progress} / ${c.target}</span>
+        <button class="btn ${c.joined?'btn-success':'btn-secondary'} btn-sm" data-challenge="${c.id}">
+          ${c.progress >= c.target ? '✅ Completed!' : c.joined ? '✓ Joined' : 'Join Challenge'}
+        </button>
+      </div>
+    </div>`).join('');
 
-  const challenges = [
-    {
-      title:'7-Day Streak',
-      desc :'Study every day for 7 consecutive days.',
-      reward:'🔥 Streak Master (+50 XP)',
-      cur  : str,
-      max  : 7,
-      pct  : Math.min(100, Math.round((str/7)*100)),
-    },
-    {
-      title:'Quiz Champion',
-      desc :'Score 80%+ on 5 different quizzes.',
-      reward:'🏆 Champion (+75 XP)',
-      cur  : qr.filter(r=>r.pct>=80).length,
-      max  : 5,
-      pct  : Math.min(100,Math.round((qr.filter(r=>r.pct>=80).length/5)*100)),
-    },
-    {
-      title:'Note Master',
-      desc :'Create 10 study notes.',
-      reward:'📝 Note Master (+60 XP)',
-      cur  : notes.length,
-      max  : 10,
-      pct  : Math.min(100,Math.round((notes.length/10)*100)),
-    },
-    {
-      title:'Flashcard Guru',
-      desc :'Review 50 flashcards total.',
-      reward:'🃏 Guru (+50 XP)',
-      cur  : fcs.reduce((s,c)=>s+(c.reviews||0),0),
-      max  : 50,
-      pct  : Math.min(100,Math.round((fcs.reduce((s,c)=>s+(c.reviews||0),0)/50)*100)),
-    },
-    {
-      title:'100-Hour Club',
-      desc :'Accumulate 100 hours of study time.',
-      reward:'⏱️ Century (+120 XP)',
-      cur  : Math.round(sess.reduce((s,x)=>s+x.duration,0)/60),
-      max  : 100,
-      pct  : Math.min(100,Math.round((sess.reduce((s,x)=>s+x.duration,0)/60/100)*100)),
-    },
-  ];
-
-  el.innerHTML = challenges.map(c=>{
-    const done  = c.pct>=100;
-    const color = done?'var(--green)':c.pct>=60?'var(--purple)':'var(--orange)';
-    return `
-      <div class="challenge-item">
-        <div class="flex items-center between mb-2">
-          <div>
-            <div class="font-bold text-sm">${c.title}</div>
-            <div class="text-xs text-dim mt-1">${c.desc}</div>
-          </div>
-          ${done?'<span class="badge badge-green">Completed ✓</span>':''}
-        </div>
-        <div class="flex items-center between text-xs mb-2">
-          <span class="text-muted">Progress: ${c.cur} / ${c.max}</span>
-          <span style="color:${color};font-weight:700">${c.pct}%</span>
-        </div>
-        <div class="progress mb-2" style="height:6px">
-          <div class="progress-fill" style="width:${c.pct}%;background:${color};border-radius:3px;transition:width .6s"></div>
-        </div>
-        <div class="flex items-center between">
-          <span class="text-xs" style="color:var(--orange)">🎁 ${c.reward}</span>
-          <span class="badge ${done?'badge-green':'badge-purple'}" style="font-size:.62rem">${done?'🏅 Earned!':'In Progress'}</span>
-        </div>
-      </div>`;
-  }).join('');
+  el.querySelectorAll('[data-challenge]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ch = GR.challenges.find(c => c.id === btn.dataset.challenge);
+      if (ch && !ch.joined) {
+        ch.joined = true;
+        _saveChallenges();
+        renderChallenges();
+        showToast(`Joined "${ch.title}"!`, 'success');
+      }
+    });
+  });
 }
+
+// ── Modals ────────────────────────────────────────────────
+function showCreateGroupModal() {
+  const subjects = getSubjects();
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay open';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header"><span class="modal-title">👥 Create Group</span><button class="modal-close" id="close-grp-modal">✕</button></div>
+      <div class="form-group"><label class="form-label">Group Name</label><input id="g-name" class="form-input" placeholder="e.g. OS Study Squad"/></div>
+      <div class="form-group"><label class="form-label">Subject</label>
+        <select id="g-subject" class="form-input">${subjects.map(s=>`<option>${s}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label class="form-label">Description</label><textarea id="g-desc" class="form-input" rows="2" placeholder="What will this group study?"></textarea></div>
+      <div class="form-group"><label class="form-label">Emoji</label>
+        <select id="g-emoji" class="form-input"><option value="📚">📚 Books</option><option value="🧠">🧠 Brain</option><option value="💡">💡 Ideas</option><option value="🎯">🎯 Target</option><option value="🔬">🔬 Science</option></select>
+      </div>
+      <button class="btn btn-primary btn-full" id="btn-save-grp">Create Group</button>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('close-grp-modal')?.addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.getElementById('btn-save-grp')?.addEventListener('click', () => {
+    const name = document.getElementById('g-name')?.value.trim();
+    if (!name) { showToast('Enter a group name', 'warning'); return; }
+    GR.groups.push({ id: uid('grp'), name, subject: document.getElementById('g-subject')?.value, desc: document.getElementById('g-desc')?.value.trim(), emoji: document.getElementById('g-emoji')?.value, created: Date.now() });
+    _saveGroups();
+    modal.remove();
+    renderGroups();
+    showToast(`Group "${name}" created!`, 'success');
+  });
+}
+
+function showPostDiscModal() {
+  const subjects = getSubjects();
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay open';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header"><span class="modal-title">💬 Post a Question</span><button class="modal-close" id="close-disc-modal">✕</button></div>
+      <div class="form-group"><label class="form-label">Question</label><textarea id="d-question" class="form-input" rows="3" placeholder="e.g. What is the difference between semaphore and mutex?"></textarea></div>
+      <div class="form-group"><label class="form-label">Subject</label>
+        <select id="d-subject" class="form-input">${subjects.map(s=>`<option>${s}</option>`).join('')}</select>
+      </div>
+      <button class="btn btn-primary btn-full" id="btn-save-disc">Post Question</button>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('close-disc-modal')?.addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.getElementById('btn-save-disc')?.addEventListener('click', () => {
+    const q = document.getElementById('d-question')?.value.trim();
+    if (!q) { showToast('Enter a question', 'warning'); return; }
+    GR.discussions.push({ id: uid('disc'), question: q, subject: document.getElementById('d-subject')?.value, answers: [], created: Date.now() });
+    _saveDiscussions();
+    modal.remove();
+    renderDiscussions();
+    showToast('Question posted!', 'success');
+    // Switch to discuss tab
+    document.querySelector('[data-gr-tab="discuss"]')?.click();
+  });
+}
+
+// ── Challenge progress from real data ────────────────────
+async function _updateChallengeProgress() {
+  const data = await getData();
+  const quizzes = data.quizzes || [];
+  const sessions = data.focusSessions || [];
+  const cards = data.flashcards || [];
+
+  GR.challenges.forEach(c => {
+    if (!c.joined) return;
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+    if (c.type === 'quiz') {
+      c.progress = quizzes.filter(q => q.created >= weekAgo.getTime()).length;
+    } else if (c.type === 'streak') {
+      const uniqueDays = [...new Set(sessions.map(s=>s.date))];
+      c.progress = uniqueDays.length;
+    } else if (c.type === 'flash') {
+      c.progress = cards.filter(c => c.reviews > 0).length;
+    } else if (c.type === 'perfect') {
+      c.progress = quizzes.filter(q => q.score === 100).length;
+    }
+  });
+  _saveChallenges();
+}
+
+// ── Storage helpers ───────────────────────────────────────
+function _saveGroups()      { setData('groups', GR.groups); }
+function _saveDiscussions() { setData('discussions', GR.discussions); }
+function _saveChallenges()  { setData('challenges', GR.challenges); }

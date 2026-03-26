@@ -13,29 +13,27 @@
 
 // ── CONFIG ───────────────────────────────────────────────────
 const API = '/api';
-let _token   = localStorage.getItem('sai_token') || null;
 let _cache   = {};          // in-memory data cache
 let _dirty   = new Set();   // keys that need syncing to server
 let _syncTimer = null;
 
-// ── AUTH TOKEN ───────────────────────────────────────────────
-function setToken(t) { _token = t; localStorage.setItem('sai_token', t || ''); }
-function getToken()  { return _token; }
-function clearToken(){ _token = null; localStorage.removeItem('sai_token'); }
+// Use global getToken() from auth.js directly
 
 // ── HTTP HELPERS ─────────────────────────────────────────────
 async function apiGet(path) {
+  const token = typeof getToken === 'function' ? getToken() : localStorage.getItem('sa_token');
   const r = await fetch(API + path, {
-    headers: { 'Authorization': 'Bearer ' + _token },
+    headers: { 'Authorization': 'Bearer ' + (token || '') },
   });
   if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || r.statusText); }
   return r.json();
 }
 
 async function apiPost(path, body) {
+  const token = typeof getToken === 'function' ? getToken() : localStorage.getItem('sa_token');
   const r = await fetch(API + path, {
     method : 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
     body   : JSON.stringify(body),
   });
   if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || r.statusText); }
@@ -43,9 +41,10 @@ async function apiPost(path, body) {
 }
 
 async function apiDel(path) {
+  const token = typeof getToken === 'function' ? getToken() : localStorage.getItem('sa_token');
   const r = await fetch(API + path, {
     method : 'DELETE',
-    headers: { 'Authorization': 'Bearer ' + _token },
+    headers: { 'Authorization': 'Bearer ' + (token || '') },
   });
   if (!r.ok) throw new Error(r.statusText);
   return r.json();
@@ -53,7 +52,8 @@ async function apiDel(path) {
 
 // ── LOAD ALL DATA FROM SERVER ────────────────────────────────
 async function loadAllData() {
-  if (!_token) return;
+  const token = typeof getToken === 'function' ? getToken() : localStorage.getItem('sa_token');
+  if (!token) return;
   try {
     _cache = await apiGet('/data');
   } catch (e) {
@@ -69,7 +69,8 @@ function schedulSync() {
 }
 
 async function syncDirty() {
-  if (!_token || _dirty.size === 0) return;
+  const token = typeof getToken === 'function' ? getToken() : localStorage.getItem('sa_token');
+  if (!token || _dirty.size === 0) return;
   const payload = {};
   _dirty.forEach(k => { payload[k] = _cache[k]; });
   _dirty.clear();
@@ -357,9 +358,18 @@ const SettingsStore = {
 
 // Alias for UserStore (user profile stored in session, not per-data)
 const UserStore = {
-  get        : ()   => { try { return JSON.parse(localStorage.getItem('sai_user') || 'null'); } catch { return null; } },
-  set        : u    => { localStorage.setItem('sai_user', JSON.stringify(u)); },
-  clear      : ()   => { localStorage.removeItem('sai_user'); },
+  get        : ()   => { 
+    if (typeof getUser === 'function') return getUser();
+    try { return JSON.parse(localStorage.getItem('sa_user') || 'null'); } catch { return null; } 
+  },
+  set        : u    => { 
+    if (typeof setUser === 'function') return setUser(u);
+    localStorage.setItem('sa_user', JSON.stringify(u)); 
+  },
+  clear      : ()   => { 
+    if (typeof clearToken === 'function') return clearToken();
+    localStorage.removeItem('sa_token'); localStorage.removeItem('sa_user'); 
+  },
   findByEmail: ()   => null, // handled by server
   addUser    : ()   => null, // handled by server
 };

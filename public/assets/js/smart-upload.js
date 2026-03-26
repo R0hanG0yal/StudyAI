@@ -408,15 +408,15 @@ async function suSaveAsNote() {
       fileMeta  : { pages: data.pages, words: data.wordCount, type: data.type },
     };
 
-    let notes = [];
+    let notes = typeof getOrDefault === 'function' ? getOrDefault('notes', []) : [];
     try {
       const existing = await fetch('/api/data/notes', {
         headers: { 'Authorization': 'Bearer ' + (getToken?.() || '') },
       }).then(r => r.json());
-      notes = existing.value || [];
-    } catch (err) {
-      notes = typeof getOrDefault === 'function' ? getOrDefault('notes', []) : [];
-    }
+      if (existing.value && Array.isArray(existing.value)) {
+        notes = existing.value;
+      }
+    } catch (err) { }
 
     notes.unshift(newNote);
 

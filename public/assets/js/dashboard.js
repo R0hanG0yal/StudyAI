@@ -40,6 +40,18 @@ function _renderStats(data) {
   const avgScore  = qr.length ? Math.round(qr.reduce((s, r) => s + r.pct, 0) / qr.length) : 0;
   const doneCount = tasks.filter(t => t.done).length;
 
+  // Level Logic: 1 level per 60 mins studied
+  const level = Math.floor(totalMins / 60) + 1;
+  const xp    = totalMins % 60;
+  const ranks = ['Novice Initiate', 'Diligent Scholar', 'Knowledge Seeker', 'Master of Focus', 'Grand Sage'];
+  const rank  = ranks[Math.min(level - 1, ranks.length - 1)];
+
+  // Update Level UI
+  document.getElementById('student-level-icon').textContent = level;
+  document.getElementById('student-rank').textContent = rank;
+  document.getElementById('level-xp').textContent = `${xp} / 60 XP`;
+  document.getElementById('level-progress').style.width = `${(xp / 60) * 100}%`;
+
   const stats = [
     { icon:'⏱️', cls:'purple', val: _fmtH(totalMins),   label:'Study Time',   change:`↑ ${sessions.length} sessions`,   up:true  },
     { icon:'🔥', cls:'orange', val: streak.current,      label:'Day Streak',   change:`Best: ${streak.longest} days`,    up:true  },
@@ -56,8 +68,10 @@ function _renderStats(data) {
       <div class="stat-change ${s.up ? 'up' : 'down'}">${s.change}</div>
     </div>`).join('');
 
-  // Update streak in topbar
-  updateTopbarStreak(streak.current);
+  // Update global topbar stats
+  if (typeof updateTopbarStats === 'function') {
+    updateTopbarStats(streak.current, level);
+  }
 }
 
 /* ════════════════════════════════════════════════════════════

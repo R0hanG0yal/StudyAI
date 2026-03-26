@@ -1,182 +1,232 @@
 /* ============================================================
-   STUDYAI — SIDEBAR  (injected on every page)
-   File: public/assets/js/sidebar.js
+   STUDYAI — sidebar.js  (v2)
+   Builds and injects sidebar + topbar. Handles mobile drawer.
    ============================================================ */
-'use strict';
 
 const NAV_ITEMS = [
-  { group: 'Main',
-    items: [
-      { href: '/dashboard.html',    icon: '🏠', label: 'Dashboard'      },
-      { href: '/notes.html',        icon: '📝', label: 'My Notes'       },
-      { href: '/chat.html',         icon: '🤖', label: 'AI Chat'        },
-      { href: '/summaries.html',    icon: '📄', label: 'Summaries'      },
-      { href: '/doubt.html',         icon: '🔍', label: 'Doubt Solver'   },
-    ]
-  },
-  { group: 'Practice',
-    items: [
-      { href: '/quiz.html',         icon: '🎯', label: 'Quiz Zone'      },
-      { href: '/flashcards.html',   icon: '🃏', label: 'Flashcards'     },
-      { href: '/revision.html',     icon: '🔄', label: 'Revision'       },
-    ]
-  },
-  { group: 'Planning',
-    items: [
-      { href: '/planner.html',      icon: '📅', label: 'Study Planner'  },
-      { href: '/analytics.html',    icon: '📊', label: 'Analytics'      },
-      { href: '/focus.html',        icon: '⚡', label: 'Focus Mode'     },
-    ]
-  },
-  { group: 'Community',
-    items: [
-      { href: '/groups.html',       icon: '👥', label: 'Study Groups'   },
-      { href: '/achievements.html', icon: '🏆', label: 'Achievements'   },
-    ]
-  },
-  { group: 'Account',
-    items: [
-      { href: '/settings.html',     icon: '⚙️', label: 'Settings'       },
-    ]
-  },
+  { section: 'Main' },
+  { href:'/dashboard.html',  icon:'🏠', label:'Dashboard',    page:'Dashboard' },
+  { href:'/notes.html',      icon:'📝', label:'My Notes',     page:'My Notes' },
+  { href:'/chat.html',       icon:'🤖', label:'AI Chat',      page:'AI Chat' },
+  { href:'/summaries.html',  icon:'📄', label:'Summaries',    page:'Summaries' },
+  { section: 'Practice' },
+  { href:'/quiz.html',       icon:'🎯', label:'Quiz Zone',    page:'Quiz Zone' },
+  { href:'/flashcards.html', icon:'🃏', label:'Flashcards',   page:'Flashcards' },
+  { href:'/doubt.html',      icon:'🔍', label:'Doubt Solver', page:'AI Doubt Solver' },
+  { href:'/revision.html',   icon:'🔄', label:'Revision',     page:'Revision Center' },
+  { section: 'Planning' },
+  { href:'/planner.html',    icon:'📅', label:'Planner',      page:'Study Planner' },
+  { href:'/focus.html',      icon:'⚡', label:'Focus Mode',   page:'Focus Mode' },
+  { href:'/groups.html',     icon:'👥', label:'Study Groups', page:'Study Groups' },
+  { section: 'Insights' },
+  { href:'/analytics.html',  icon:'📊', label:'Analytics',    page:'Analytics' },
+  { href:'/achievements.html',icon:'🏆',label:'Achievements', page:'Achievements' },
+  { href:'/settings.html',   icon:'⚙️', label:'Settings',     page:'Settings' },
 ];
 
-/* ── Build and inject sidebar ── */
-function buildSidebar(pageTitle = 'StudyAI') {
-  const currentPath = window.location.pathname;
+function buildSidebar(user, activePage) {
+  const layout = document.getElementById('app-layout');
+  if (!layout) return;
 
-  // Build nav groups HTML
-  const navHTML = NAV_ITEMS.map(group => `
-    <div class="nav-group">
-      <div class="nav-group-label">${group.group}</div>
-      ${group.items.map(item => {
-        const isActive = currentPath === item.href ||
-          (item.href !== '/dashboard.html' && currentPath.includes(item.href.replace('.html','')));
-        return `
-          <a href="${item.href}" class="nav-item ${isActive ? 'active' : ''}">
-            <div class="nav-icon">${item.icon}</div>
-            <span class="nav-label">${item.label}</span>
-          </a>`;
-      }).join('')}
-    </div>`).join('');
+  let navHtml = '';
+  NAV_ITEMS.forEach(item => {
+    if (item.section) {
+      navHtml += `<div class="nav-section-label">${item.section}</div>`;
+    } else {
+      const active = item.page === activePage ? 'active' : '';
+      navHtml += `<a class="nav-item ${active}" href="${item.href}">
+        <span class="nav-icon">${item.icon}</span>
+        <span>${item.label}</span>
+      </a>`;
+    }
+  });
 
-  const sidebarHTML = `
-    <div class="sidebar" id="sidebar">
+  const initials = (user.name || 'U').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+  const sidebarHtml = `
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
       <div class="sidebar-logo">
-        <div class="sidebar-logo-icon">🧠</div>
-        <span class="sidebar-logo-text">StudyAI</span>
-        <span class="sidebar-logo-beta">BETA</span>
+        <div class="sidebar-logo-text">🧠 StudyAI</div>
       </div>
-      <div class="nav-scroll" style="flex:1;overflow-y:auto">
-        ${navHTML}
+      <nav class="sidebar-nav">${navHtml}</nav>
+      <div class="sidebar-footer">
+        <a class="sidebar-user" href="/settings.html" title="Settings">
+          <div class="user-avatar" aria-hidden="true">${initials}</div>
+          <div>
+            <div class="user-name">${_esc(user.name || 'Student')}</div>
+            <div class="user-course">${_esc(user.course || 'General')}</div>
+          </div>
+        </a>
       </div>
-      <div class="sidebar-user" onclick="window.location.href='/settings.html'">
-        <div class="user-avatar" id="sb-avatar">A</div>
-        <div class="user-info">
-          <div class="user-name" id="sb-name">Loading…</div>
-          <div class="user-role" id="sb-role">Student</div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebar-overlay" role="presentation"></div>`;
+
+  const topbarHtml = `
+    <div class="topbar" id="topbar" role="banner">
+      <button id="menu-btn" aria-label="Open menu" aria-expanded="false"
+        style="display:none;background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:1.1rem;color:var(--text-dim)">☰</button>
+      
+      <div style="display:flex;align-items:center;gap:12px;flex:1">
+        <div style="font-family:var(--font-display);font-weight:700;font-size:.95rem;display:none;@media(min-width:768px){display:block}">${activePage}</div>
+        
+        <!-- Global Quick Search -->
+        <div class="search-container" style="position:relative;flex:1;max-width:320px;margin-left:14px">
+          <input type="text" id="global-search" placeholder="Quick find... (Ctrl+K)" 
+            style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:7px 12px 7px 32px;font-size:.8rem;color:var(--text);outline:none;transition:all .2s">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.9rem;opacity:.5">🔍</span>
         </div>
-        <span style="color:var(--text-muted);font-size:.8rem">⚙️</span>
+      </div>
+
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+        <!-- Streak & Level Badges -->
+        <div id="topbar-streak" class="badge badge-orange" style="font-size:.7rem;padding:4px 10px;display:none">🔥 0</div>
+        <div id="topbar-level" class="badge badge-purple" style="font-size:.7rem;padding:4px 10px;display:none">Lv. 1</div>
+        
+        <div class="flex" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:3px">
+          <button id="reading-toggle-btn" aria-label="Toggle reading mode" title="Reading Mode"
+            style="background:none;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;font-size:1rem">📖</button>
+          <button id="theme-toggle-btn" aria-label="Toggle theme" 
+            style="background:none;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s">🌙</button>
+           <button id="topbar-logout" aria-label="Sign out"
+            style="background:none;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;color:var(--red)">🚪</button>
+        </div>
       </div>
     </div>`;
 
-  const topbarHTML = `
-    <header class="topbar">
-      <button class="menu-toggle" onclick="toggleSidebar()" title="Toggle menu">☰</button>
-      <div class="topbar-title">${pageTitle}</div>
-      <div class="topbar-actions">
-        <div class="topbar-streak" title="Study streak">
-          🔥 <span id="tb-streak-num">0</span>
-        </div>
-        <button class="topbar-btn" onclick="window.location.href='/focus.html'" title="Focus Mode">⚡</button>
-        <button class="topbar-btn" onclick="toggleDarkMode()" title="Toggle Dark Mode" id="dark-mode-btn">🌙</button>
-        <button class="topbar-btn" onclick="doLogout()" title="Sign out">🚪</button>
-      </div>
-    </header>`;
-
-  // Inject into .app-layout
-  const layout = document.getElementById('app-layout');
-  if (layout) {
-    // Inject sidebar before main content
-    layout.insertAdjacentHTML('afterbegin', sidebarHTML);
-
-    // Find or create main-content
-    const mc = layout.querySelector('.main-content');
-    if (mc) mc.insertAdjacentHTML('afterbegin', topbarHTML);
+  const main = layout.querySelector('.main-content');
+  if (main) {
+    main.insertAdjacentHTML('beforebegin', sidebarHtml);
+    main.insertAdjacentHTML('afterbegin', topbarHtml);
   }
 
-  // Update user info
-  updateSidebarUser();
-
-  // Dark mode button text refresh
-  if (document.body.classList.contains('dark-mode')) {
-    const btn = document.getElementById('dark-mode-btn');
-    if (btn) btn.textContent = '☀️';
+  // ── Theme toggle ──────────────────────────────────────────
+  const themeBtn = document.getElementById('theme-toggle-btn');
+  if (themeBtn) {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    themeBtn.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+    themeBtn.addEventListener('click', () => {
+      const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      localStorage.setItem('sa_theme', t);
+      themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+      getSettings().then(s => { s.theme = t; saveSettings(s); }).catch(()=>{});
+    });
   }
-}
 
-/* ── Toggle sidebar (mobile) ── */
-function toggleSidebar() {
-  document.getElementById('sidebar')?.classList.toggle('open');
-}
-
-// Close sidebar when clicking outside on mobile
-document.addEventListener('click', e => {
-  const sb = document.getElementById('sidebar');
-  if (!sb) return;
-  if (window.innerWidth <= 768 &&
-      !sb.contains(e.target) &&
-      !e.target.classList.contains('menu-toggle')) {
-    sb.classList.remove('open');
+  // ── Reading Mode toggle ───────────────────────────────────
+  const readBtn = document.getElementById('reading-toggle-btn');
+  if (readBtn) {
+    const isRead = localStorage.getItem('sa_reading_mode') === 'true';
+    if (isRead) {
+      document.documentElement.setAttribute('data-reading-mode', 'true');
+      readBtn.style.background = 'rgba(124, 58, 237, 0.15)';
+    }
+    readBtn.addEventListener('click', () => {
+      const active = document.documentElement.getAttribute('data-reading-mode') === 'true';
+      const newVal = !active;
+      document.documentElement.setAttribute('data-reading-mode', newVal ? 'true' : 'false');
+      localStorage.setItem('sa_reading_mode', newVal);
+      readBtn.style.background = newVal ? 'rgba(124, 58, 237, 0.15)' : 'none';
+    });
   }
-});
 
-/* ── Load streak for topbar ── */
-async function loadStreakForTopbar() {
+  // ── Logout ────────────────────────────────────────────────
+  document.getElementById('topbar-logout')?.addEventListener('click', doLogout);
+
+  // ── Mobile hamburger ──────────────────────────────────────
+  const menuBtn = document.getElementById('menu-btn');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+
+  function openDrawer() {
+    sidebar?.classList.add('open');
+    overlay?.classList.add('show');
+    menuBtn?.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeDrawer() {
+    sidebar?.classList.remove('open');
+    overlay?.classList.remove('show');
+    menuBtn?.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  if (menuBtn) {
+    // Show on mobile
+    if (window.innerWidth <= 768) menuBtn.style.display = 'flex';
+    menuBtn.addEventListener('click', () =>
+      sidebar?.classList.contains('open') ? closeDrawer() : openDrawer()
+    );
+    window.addEventListener('resize', () => {
+      menuBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+      if (window.innerWidth > 768) closeDrawer();
+    });
+  }
+
+  overlay?.addEventListener('click', closeDrawer);
+
+  // Close drawer on nav item click (mobile)
+  sidebar?.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => { if (window.innerWidth <= 768) closeDrawer(); });
+  });
+
+  // ── Global Search & Shortcuts ─────────────────────────────
+  const searchInput = document.getElementById('global-search');
+  if (searchInput) {
+    window.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInput.focus();
+      }
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      if (!q) return;
+      // Simple page search logic
+      const match = NAV_ITEMS.find(i => i.label?.toLowerCase().includes(q));
+      if (match && e.inputType === 'insertLineBreak' || e.key === 'Enter') {
+        window.location.href = match.href;
+      }
+    });
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const q = searchInput.value.toLowerCase().trim();
+        const match = NAV_ITEMS.find(i => i.label?.toLowerCase().includes(q));
+        if (match) window.location.href = match.href;
+      }
+    });
+  }
+
+  // ── Apply saved accent ────────────────────────────────────
+  const accent = localStorage.getItem('sa_accent');
+  if (accent && typeof _applyAccent === 'function') _applyAccent(accent);
+
+  // Initialize stats from localStorage cache (if any)
   try {
-    const data = await apiGet('/data/streak');
-    const streak = data.value || { current: 0 };
-    updateTopbarStreak(streak.current || 0);
-  } catch (_) {}
+    const s = parseInt(localStorage.getItem('sa_cached_streak') || 0);
+    const l = parseInt(localStorage.getItem('sa_cached_level') || 1);
+    updateTopbarStats(s, l);
+  } catch(e){}
 }
 
-/* ════════════════════════════════════════════════════════════
-   PAGE INIT HELPER — call this on every protected page
-   ════════════════════════════════════════════════════════════ */
-async function initPage(pageTitle) {
-  showPageLoader();
-
-  // Auth check
-  const user = await requireAuth();
-  if (!user) return; // redirected to login
-
-  // Load data cache from server
-  if (typeof loadAllData === 'function') {
-    await loadAllData();
+function updateTopbarStats(streak, level) {
+  const ts = document.getElementById('topbar-streak');
+  const tl = document.getElementById('topbar-level');
+  if (ts) { 
+    ts.textContent = `🔥 ${streak}`; 
+    ts.style.display = streak > 0 ? 'inline-flex' : 'none';
+    localStorage.setItem('sa_cached_streak', streak);
   }
-
-  // Build sidebar + topbar
-  buildSidebar(pageTitle);
-
-  // Load streak
-  loadStreakForTopbar();
-
-  hidePageLoader();
-  return user;
+  if (tl) { 
+    tl.textContent = `Lv. ${level}`; 
+    tl.style.display = 'inline-flex';
+    localStorage.setItem('sa_cached_level', level);
+  }
 }
 
-/* ════════════════════════════════════════════════════════════
-   DARK MODE CONTROLLER
-   ════════════════════════════════════════════════════════════ */
-window.toggleDarkMode = function() {
-  const isDark = document.body.classList.toggle('dark-mode');
-  localStorage.setItem('darkMode', isDark ? 'on' : 'off');
-  const btn = document.getElementById('dark-mode-btn');
-  if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+function _esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-function initDarkMode() {
-  const isDark = localStorage.getItem('darkMode') === 'on';
-  if (isDark) document.body.classList.add('dark-mode');
-}
-initDarkMode();
+// Backwards compatibility alias
+const escapeHtml = _esc;

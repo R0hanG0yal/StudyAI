@@ -2,11 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none';"/>
+  <meta name="description" content="Upload a photo of any question and AI solves it step by step."/>
+  <meta property="og:title" content="StudyAI — Doubt Solver"/>
+  <meta property="og:description" content="Upload a photo of any question and AI solves it step by step."/>
+  <meta property="og:type" content="website"/>
+  <meta name="theme-color" content="#667eea"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>StudyAI — Doubt Solver</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>"/>
   <link rel="stylesheet" href="assets/css/global.css"/>
   <link rel="stylesheet" href="assets/css/components.css"/>
+  <link rel="stylesheet" href="assets/css/mobile.css"/>
   <style>
     .upload-zone {
       border: 2px dashed rgba(102,126,234,.35);
@@ -113,13 +120,13 @@
           <div class="card mb-4">
             <div class="card-title mb-3">📚 Select Subject</div>
             <div class="subject-chips" id="subject-chips">
-              <div class="subject-chip active" data-sub="General" style="border-color:#667eea;color:#667eea;background:rgba(102,126,234,.12)" onclick="selectSubject(this)">🧠 General</div>
-              <div class="subject-chip" data-sub="Math"    style="border-color:#f093fb;color:#f093fb;background:transparent" onclick="selectSubject(this)">📐 Math</div>
-              <div class="subject-chip" data-sub="Physics" style="border-color:#4facfe;color:#4facfe;background:transparent" onclick="selectSubject(this)">⚡ Physics</div>
-              <div class="subject-chip" data-sub="Chemistry" style="border-color:#43e97b;color:#43e97b;background:transparent" onclick="selectSubject(this)">🧪 Chemistry</div>
-              <div class="subject-chip" data-sub="DSA"     style="border-color:#fa709a;color:#fa709a;background:transparent" onclick="selectSubject(this)">💻 DSA/Code</div>
-              <div class="subject-chip" data-sub="OS"      style="border-color:#fee140;color:#fee140;background:transparent" onclick="selectSubject(this)">🖥️ OS</div>
-              <div class="subject-chip" data-sub="DBMS"    style="border-color:#a78bfa;color:#a78bfa;background:transparent" onclick="selectSubject(this)">🗄️ DBMS</div>
+              <div class="subject-chip active" data-sub="General" style="border-color:#667eea;color:#667eea;background:rgba(102,126,234,.12)" >🧠 General</div>
+              <div class="subject-chip" data-sub="Math"    style="border-color:#f093fb;color:#f093fb;background:transparent" >📐 Math</div>
+              <div class="subject-chip" data-sub="Physics" style="border-color:#4facfe;color:#4facfe;background:transparent" >⚡ Physics</div>
+              <div class="subject-chip" data-sub="Chemistry" style="border-color:#43e97b;color:#43e97b;background:transparent" >🧪 Chemistry</div>
+              <div class="subject-chip" data-sub="DSA"     style="border-color:#fa709a;color:#fa709a;background:transparent" >💻 DSA/Code</div>
+              <div class="subject-chip" data-sub="OS"      style="border-color:#fee140;color:#fee140;background:transparent" >🖥️ OS</div>
+              <div class="subject-chip" data-sub="DBMS"    style="border-color:#a78bfa;color:#a78bfa;background:transparent" >🗄️ DBMS</div>
             </div>
             <div class="form-group mb-0">
               <label class="form-label">Extra context (optional)</label>
@@ -131,8 +138,8 @@
           <div class="card" style="position:relative">
             <div class="card-title mb-3">📸 Upload Question Image</div>
             <div class="upload-zone" id="upload-zone"
-              ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)"
-              onclick="document.getElementById('img-input').click()">
+                
+              >
               <div id="dz-content">
                 <div style="font-size:3rem;margin-bottom:12px">📸</div>
                 <div style="font-size:.95rem;font-weight:600;color:#f0f2ff;margin-bottom:6px">Drop your question image here</div>
@@ -146,15 +153,15 @@
                 <div id="solve-status" style="color:#a78bfa;font-size:.88rem;font-weight:600">Reading question…</div>
                 <div style="font-size:.74rem;color:#6b7280">AI is solving step by step…</div>
               </div>
-              <input type="file" id="img-input" accept="image/*" style="display:none" onchange="imageSelected(this)"/>
+              <input type="file" id="img-input" accept="image/*" style="display:none" />
             </div>
 
             <!-- Camera button -->
             <div style="display:flex;gap:10px;margin-top:12px">
-              <button class="camera-btn" style="flex:1;justify-content:center" onclick="openCamera()">
+              <button class="camera-btn" id="btn-camera" style="flex:1;justify-content:center" >
                 📷 Use Camera
               </button>
-              <button class="btn btn-secondary" onclick="clearDoubt()" id="clear-btn" style="display:none">
+              <button class="btn btn-secondary"  id="clear-btn" style="display:none">
                 🗑️ Clear
               </button>
             </div>
@@ -165,9 +172,9 @@
             </div>
 
             <!-- Solve button -->
-            <button class="btn btn-primary btn-full" id="solve-btn"
+            <button class="btn btn-primary btn-full" id="btn-solve"
               style="margin-top:14px;justify-content:center;display:none"
-              onclick="solveDoubt()">
+              >
               🔍 Solve This Question
             </button>
           </div>
@@ -178,8 +185,8 @@
               <div class="card-title mb-3">📷 Camera</div>
               <video id="camera-feed" autoplay playsinline style="width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.08)"></video>
               <div style="display:flex;gap:10px;margin-top:10px">
-                <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="capturePhoto()">📸 Capture</button>
-                <button class="btn btn-secondary" onclick="closeCamera()">✕ Close</button>
+                <button class="btn btn-primary" id="btn-capture" style="flex:1;justify-content:center" >📸 Capture</button>
+                <button class="btn btn-secondary" >✕ Close</button>
               </div>
               <canvas id="capture-canvas" style="display:none"></canvas>
             </div>
@@ -210,8 +217,8 @@
                   ✅ Solution Ready
                 </div>
                 <div style="display:flex;gap:8px">
-                  <button class="btn btn-secondary btn-sm" onclick="saveToNotes()">📝 Save to Notes</button>
-                  <button class="btn btn-secondary btn-sm" onclick="copyToClipboard()">📋 Copy</button>
+                  <button class="btn btn-secondary btn-sm" >📝 Save to Notes</button>
+                  <button class="btn btn-secondary btn-sm" >📋 Copy</button>
                 </div>
               </div>
               <div class="solution-box" id="solution-content"></div>
@@ -231,12 +238,33 @@
 </div>
 
 <div id="toast-container"></div>
+<script src="assets/js/subjects.js"></script>
 <script src="assets/js/auth.js"></script>
 <script src="assets/js/utils.js"></script>
 <script src="assets/js/sidebar.js"></script>
 <script src="assets/js/storage.js"></script>
 <script src="assets/js/doubt.js"></script>
+<script src="assets/js/events.js"></script>
 <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const dz = document.getElementById('upload-zone');
+    const inp = document.getElementById('img-input');
+    dz?.addEventListener('click', () => inp?.click());
+    dz?.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+    dz?.addEventListener('dragleave', () => dz.classList.remove('drag'));
+    dz?.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); if (e.dataTransfer.files[0]) imageSelected({ files: e.dataTransfer.files }); });
+    inp?.addEventListener('change', e => imageSelected(e.target));
+    document.getElementById('btn-solve')?.addEventListener('click', solveDoubt);
+    document.getElementById('btn-clear-doubt')?.addEventListener('click', clearDoubt);
+    document.getElementById('btn-camera')?.addEventListener('click', openCamera);
+    document.getElementById('btn-capture')?.addEventListener('click', capturePhoto);
+    document.getElementById('btn-close-camera')?.addEventListener('click', closeCamera);
+    document.getElementById('btn-save-to-notes')?.addEventListener('click', saveToNotes);
+    document.getElementById('btn-copy-solution')?.addEventListener('click', copyToClipboard);
+    document.querySelectorAll('[data-sub]').forEach(chip => {
+      chip.addEventListener('click', () => selectSubject(chip));
+    });
+  });
   initPage('AI Doubt Solver').then(user => { if (user) initDoubt(); });
 </script>
 </body>

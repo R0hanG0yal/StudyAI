@@ -1,402 +1,327 @@
 /* ============================================================
-   STUDYAI — ANALYTICS
-   File: public/assets/js/analytics.js
+   STUDYAI — analytics.js  (Part 8)
+   Real analytics from actual stored user data — NOT mock data.
+   All charts and stats derived from focusSessions, quizzes,
+   flashcards, notes, revisions stored in the user's account.
    ============================================================ */
-'use strict';
 
-const AN = { data:{}, days:7, charts:{} };
+let _charts = {};
+let _period  = 7; // days
+let _allData  = {};
 
-const CC = {
-  purple : 'rgba(102,126,234,.75)',
-  pink   : 'rgba(240,147,251,.75)',
-  cyan   : 'rgba(79,172,254,.75)',
-  green  : 'rgba(67,233,123,.75)',
-  orange : 'rgba(250,130,49,.75)',
-  red    : 'rgba(245,87,108,.75)',
-  yellow : 'rgba(254,225,64,.75)',
-  grid   : 'rgba(255,255,255,.05)',
-  tick   : 'rgba(255,255,255,.3)',
-};
-
-const SUBJ_COLORS = [CC.purple,CC.cyan,CC.green,CC.orange,CC.pink,CC.yellow];
-
-/* ── ENTRY ── */
 async function initAnalytics() {
-  AN.data = await apiGet('/data').catch(() => ({}));
-  renderAnalytics();
+  showSkeletons();
+  _allData = await getData();
+  setPeriod(_period, document.querySelector('[data-days="7"]'));
 }
 
 function setPeriod(days, btn) {
-  AN.days = days;
-  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  // Destroy old charts
-  Object.values(AN.charts).forEach(c=>{ try{c.destroy();}catch(_){} });
-  AN.charts = {};
-  renderAnalytics();
+  _period = days;
+  document.querySelectorAll('[data-days]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderAll();
 }
 
-/* ── MAIN RENDER ── */
-function renderAnalytics() {
-  const cutoff  = Date.now() - AN.days * 86400000;
-  const sess    = (AN.data.sessions||[]).filter(s=>s.created>=cutoff);
-  const qr      = (AN.data.quizResults||[]).filter(r=>r.timestamp>=cutoff);
-  const revDone = (AN.data.revisions||[]).filter(r=>r.done&&(r.completedAt||0)>=cutoff);
-  const streak  = AN.data.streak || {current:0,longest:0};
-
-  _renderStats(sess, qr, revDone, streak);
-  _renderHoursChart(sess);
-  _renderAccuracyChart(qr);
-  _renderSubjectsChart(sess);
-  _renderRevisionChart();
-  _renderMastery(qr);
-  _renderInsights(sess, qr, revDone, streak);
-  _renderHeatmap();
-}
-
-/* ════════════════════════════════════════════════════════════
-   STAT CARDS
-   ════════════════════════════════════════════════════════════ */
-function _renderStats(sess, qr, revDone, streak) {
-  const totalMins = sess.reduce((s,r)=>s+r.duration,0);
-  const av        = qr.length ? Math.round(qr.reduce((s,r)=>s+r.pct,0)/qr.length) : 0;
-  const el        = document.getElementById('analytics-stats');
-  if (!el) return;
-
-  el.innerHTML = [
-    {icon:'⏱️',cls:'purple',val:fmtMins(totalMins),label:`Study Time (${AN.days}d)`,    chg:`${sess.length} sessions`},
-    {icon:'🎯',cls:'blue',  val:av+'%',            label:'Quiz Average',                 chg:`${qr.length} quizzes`},
-    {icon:'🔥',cls:'orange',val:streak.current+'d',label:'Current Streak',               chg:`Best: ${streak.longest}d`},
-    {icon:'🔄',cls:'green', val:revDone.length,    label:'Revisions Done',               chg:`This period`},
-    {icon:'📝',cls:'pink',  val:(AN.data.notes||[]).length, label:'Total Notes',         chg:'All subjects'},
-  ].map(s=>`
-    <div class="stat-card ${s.cls}">
-      <div class="stat-icon ${s.cls}">${s.icon}</div>
-      <div class="stat-value">${s.val}</div>
-      <div class="stat-label">${s.label}</div>
-      <div class="stat-change up">↑ ${s.chg}</div>
+function showSkeletons() {
+  const el = document.getElementById('analytics-stats');
+  if (el) el.innerHTML = Array(4).fill(`
+    <div class="stat-card" style="animation:pulse 1.5s infinite">
+      <div style="height:14px;background:rgba(255,255,255,.06);border-radius:6px;margin-bottom:10px;width:40%"></div>
+      <div style="height:28px;background:rgba(255,255,255,.08);border-radius:6px;margin-bottom:6px;width:60%"></div>
+      <div style="height:10px;background:rgba(255,255,255,.05);border-radius:6px;width:80%"></div>
     </div>`).join('');
 }
 
-/* ════════════════════════════════════════════════════════════
-   CHART HELPERS
-   ════════════════════════════════════════════════════════════ */
-function _destroy(key) {
-  if (AN.charts[key]) { try{AN.charts[key].destroy();}catch(_){} delete AN.charts[key]; }
+function renderAll() {
+  const data     = _allData;
+  const sessions = data.focusSessions || [];
+  const quizzes  = data.quizzes       || [];
+  const notes    = data.notes         || [];
+  const cards    = data.flashcards    || [];
+  const events   = data.analytics     || [];
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - _period);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+
+  // Filter to period
+  const periodSessions = sessions.filter(s => s.date >= cutoffStr);
+  const periodQuizzes  = quizzes.filter(q  => q.created >= cutoff.getTime());
+  const periodEvents   = events.filter(e   => e.date    >= cutoffStr);
+
+  // ── Stat cards ──────────────────────────────────────────
+  const totalMins  = periodSessions.reduce((a,s) => a + (s.duration||0), 0);
+  const totalHrs   = (totalMins / 60).toFixed(1);
+  const avgScore   = periodQuizzes.length
+    ? Math.round(periodQuizzes.reduce((a,q) => a + (q.score||0), 0) / periodQuizzes.length)
+    : 0;
+  const daysStudied = [...new Set(periodSessions.map(s => s.date))].length;
+  const cardsReviewed = cards.filter(c => c.reviews > 0).length;
+
+  const statsEl = document.getElementById('analytics-stats');
+  if (statsEl) {
+    statsEl.innerHTML = `
+      ${_statCard('⏱️', totalHrs + 'h', 'Study Time', 'c1')}
+      ${_statCard('🎯', avgScore + '%', 'Avg Quiz Score', 'c2')}
+      ${_statCard('📅', daysStudied, 'Days Studied', 'c3')}
+      ${_statCard('🃏', cardsReviewed, 'Cards Reviewed', 'c4')}`;
+  }
+
+  // ── Charts ───────────────────────────────────────────────
+  _buildHoursChart(sessions, cutoffStr);
+  _buildAccuracyChart(quizzes, cutoffStr);
+  _buildSubjectsChart(periodSessions);
+  _buildRevisionsChart(data.revisions || [], cutoffStr);
+  _buildMasteryBars(quizzes);
+  _buildInsights(data, periodSessions, periodQuizzes);
+  _buildHeatmap(sessions);
 }
 
-function _baseOpts(yLabel='') {
-  return {
-    responsive:true, maintainAspectRatio:true,
-    plugins:{
-      legend:{display:false},
-      tooltip:{
-        backgroundColor:'rgba(10,12,26,.95)',
-        titleColor:'#f0f2ff', bodyColor:'#9ca3c0',
-        borderColor:'rgba(102,126,234,.25)', borderWidth:1, padding:10,
-      },
-    },
-    scales:{
-      y:{ beginAtZero:true, grid:{color:CC.grid}, ticks:{color:CC.tick, font:{size:10}, callback:yLabel?v=>v+yLabel:undefined} },
-      x:{ grid:{display:false}, ticks:{color:CC.tick, font:{size:10}} },
-    },
-  };
+// ── Stat card helper ──────────────────────────────────────
+function _statCard(icon, val, label, cls) {
+  return `<div class="stat-card ${cls}"><div class="stat-icon">${icon}</div><div class="stat-val">${val}</div><div class="stat-lbl">${label}</div></div>`;
 }
 
-function _noDataMsg(canvas, msg='No data for this period') {
-  const ctx = canvas.getContext('2d');
-  canvas.style.height = '140px';
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle    = 'rgba(255,255,255,.18)';
-  ctx.font         = '13px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(msg, canvas.width/2, 70);
-}
+// ── Hours per day chart ───────────────────────────────────
+function _buildHoursChart(sessions, cutoffStr) {
+  const ctx = document.getElementById('chart-hours');
+  if (!ctx) return;
+  if (_charts.hours) { _charts.hours.destroy(); }
 
-/* ════════════════════════════════════════════════════════════
-   CHART 1 — Study Hours
-   ════════════════════════════════════════════════════════════ */
-function _renderHoursChart(sess) {
-  const cv = document.getElementById('chart-hours');
-  if (!cv) return;
-  _destroy('hours');
+  const labels = [], data = [];
+  for (let i = _period - 1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().split('T')[0];
+    labels.push(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]);
+    const mins = sessions.filter(s => s.date === ds).reduce((a,s) => a + (s.duration||0), 0);
+    data.push(+(mins / 60).toFixed(2));
+  }
 
-  const n    = Math.min(AN.days, 14);
-  const data = Array.from({length:n},(_,i)=>{
-    const d  = new Date(); d.setDate(d.getDate()-(n-1-i));
-    const ds = dateStr(d);
-    const m  = sess.filter(s=>s.date===ds).reduce((s,x)=>s+x.duration,0);
-    return { label:d.toLocaleDateString('en',{weekday:'short'}), hours:Math.round(m/60*10)/10 };
+  _charts.hours = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ label:'Hours', data, backgroundColor:'rgba(102,126,234,.55)', borderColor:'#667eea', borderRadius:6, borderWidth:1 }] },
+    options: _chartOpts('Study hours per day'),
   });
+}
 
-  if (data.every(d=>d.hours===0)) { _noDataMsg(cv,'No study sessions in this period'); return; }
+// ── Quiz accuracy trend ───────────────────────────────────
+function _buildAccuracyChart(quizzes, cutoffStr) {
+  const ctx = document.getElementById('chart-accuracy');
+  if (!ctx) return;
+  if (_charts.acc) { _charts.acc.destroy(); }
 
-  AN.charts.hours = new Chart(cv,{
-    type:'bar',
-    data:{
-      labels:data.map(d=>d.label),
-      datasets:[{
-        data:data.map(d=>d.hours),
-        backgroundColor:data.map(d=>d.hours>0?CC.purple:'rgba(255,255,255,.04)'),
-        borderColor:'rgba(102,126,234,.9)',
-        borderWidth:1, borderRadius:6, borderSkipped:false,
+  const recent = quizzes
+    .filter(q => q.created >= new Date(cutoffStr).getTime())
+    .sort((a,b) => a.created - b.created)
+    .slice(-20);
+
+  if (!recent.length) {
+    ctx.parentElement.innerHTML = '<div class="text-sm text-muted" style="padding:20px;text-align:center">No quiz data yet for this period.</div>';
+    return;
+  }
+
+  _charts.acc = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: recent.map((_,i) => `Quiz ${i+1}`),
+      datasets: [{
+        label: 'Score %', data: recent.map(q => q.score || 0),
+        borderColor: '#f093fb', backgroundColor: 'rgba(240,147,251,.1)',
+        tension: 0.4, fill: true, pointRadius: 4, pointHoverRadius: 6,
       }],
     },
-    options:{
-      ..._baseOpts('h'),
-      plugins:{..._baseOpts().plugins, tooltip:{..._baseOpts().plugins.tooltip, callbacks:{label:c=>c.raw+'h studied'}}},
-    },
+    options: { ..._chartOpts('Quiz accuracy trend'), scales: { y: { min: 0, max: 100, ..._yAxis() }, x: _xAxis() } },
   });
 }
 
-/* ════════════════════════════════════════════════════════════
-   CHART 2 — Quiz Accuracy Trend
-   ════════════════════════════════════════════════════════════ */
-function _renderAccuracyChart(qr) {
-  const cv = document.getElementById('chart-accuracy');
-  if (!cv) return;
-  _destroy('acc');
+// ── Study time by subject ─────────────────────────────────
+function _buildSubjectsChart(sessions) {
+  const ctx = document.getElementById('chart-subjects');
+  if (!ctx) return;
+  if (_charts.subj) { _charts.subj.destroy(); }
 
-  const sorted = [...qr].sort((a,b)=>a.timestamp-b.timestamp);
-  if (!sorted.length) { _noDataMsg(cv,'No quiz data for this period'); return; }
+  const bySubject = {};
+  sessions.forEach(s => {
+    const sub = s.subject || 'General';
+    bySubject[sub] = (bySubject[sub] || 0) + (s.duration || 0);
+  });
 
-  AN.charts.acc = new Chart(cv,{
-    type:'line',
-    data:{
-      labels:sorted.map(r=>new Date(r.timestamp).toLocaleDateString('en',{month:'short',day:'numeric'})),
-      datasets:[{
-        data:sorted.map(r=>r.pct),
-        borderColor:'rgba(67,233,123,.9)',
-        backgroundColor:'rgba(67,233,123,.07)',
-        pointBackgroundColor:'rgba(67,233,123,1)',
-        pointBorderColor:'#fff', pointRadius:4, pointHoverRadius:6,
-        tension:0.35, fill:true, borderWidth:2,
-      }],
+  const sorted = Object.entries(bySubject).sort((a,b) => b[1]-a[1]).slice(0,8);
+  if (!sorted.length) {
+    ctx.parentElement.innerHTML = '<div class="text-sm text-muted" style="padding:20px;text-align:center">No session data yet.</div>'; return;
+  }
+
+  const colors = ['#667eea','#f093fb','#4facfe','#43e97b','#fa709a','#fee140','#a18cd1','#fd7043'];
+
+  _charts.subj = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: sorted.map(([s]) => s),
+      datasets: [{ data: sorted.map(([,m]) => +(m/60).toFixed(1)), backgroundColor: colors, borderWidth: 2, borderColor: 'transparent' }],
     },
-    options:{
-      ..._baseOpts('%'),
-      scales:{
-        ..._baseOpts('%').scales,
-        y:{..._baseOpts('%').scales.y, min:0, max:100},
-      },
-      plugins:{..._baseOpts().plugins, tooltip:{..._baseOpts().plugins.tooltip, callbacks:{
-        label:c=>`Score: ${c.raw}%`,
-        afterLabel:(c)=>{ const r=sorted[c.dataIndex]; return r?`${r.title} · ${r.score}/${r.total}`:''; },
-      }}},
-    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ color:'rgba(200,200,255,.7)', font:{ size:11 } } } } },
   });
 }
 
-/* ════════════════════════════════════════════════════════════
-   CHART 3 — Subject Distribution (Doughnut)
-   ════════════════════════════════════════════════════════════ */
-function _renderSubjectsChart(sess) {
-  const cv = document.getElementById('chart-subjects');
-  if (!cv) return;
-  _destroy('subj');
+// ── Revision progress ─────────────────────────────────────
+function _buildRevisionsChart(revisions, cutoffStr) {
+  const ctx = document.getElementById('chart-revisions');
+  if (!ctx) return;
+  if (_charts.rev) { _charts.rev.destroy(); }
 
-  if (!sess.length) { _noDataMsg(cv,'No sessions in this period'); return; }
+  const bySubject = {};
+  revisions.forEach(r => {
+    const sub = r.subject || 'General';
+    if (!bySubject[sub]) bySubject[sub] = { done:0, pending:0 };
+    if (r.done) bySubject[sub].done++;
+    else bySubject[sub].pending++;
+  });
 
-  const map = {};
-  sess.forEach(s=>{ map[s.subject]=(map[s.subject]||0)+s.duration; });
-  const sorted = Object.entries(map).sort((a,b)=>b[1]-a[1]);
-  const labels = sorted.map(([s])=>s);
-  const values = sorted.map(([,m])=>Math.round(m/60*10)/10);
+  const labels = Object.keys(bySubject).slice(0,6);
+  if (!labels.length) {
+    ctx.parentElement.innerHTML = '<div class="text-sm text-muted" style="padding:20px;text-align:center">No revision data yet.</div>'; return;
+  }
 
-  AN.charts.subj = new Chart(cv,{
-    type:'doughnut',
-    data:{
+  _charts.rev = new Chart(ctx, {
+    type: 'bar',
+    data: {
       labels,
-      datasets:[{
-        data:values,
-        backgroundColor:SUBJ_COLORS.slice(0,labels.length),
-        borderColor:'rgba(13,15,26,.8)',
-        borderWidth:3, hoverOffset:6,
-      }],
-    },
-    options:{
-      responsive:true, cutout:'65%',
-      plugins:{
-        legend:{
-          display:true, position:'bottom',
-          labels:{color:CC.tick, font:{size:10}, padding:10, boxWidth:11, boxHeight:11},
-        },
-        tooltip:{
-          backgroundColor:'rgba(10,12,26,.95)',
-          titleColor:'#f0f2ff', bodyColor:'#9ca3c0',
-          callbacks:{label:c=>` ${c.label}: ${c.raw}h`},
-        },
-      },
-    },
-  });
-}
-
-/* ════════════════════════════════════════════════════════════
-   CHART 4 — Revision Progress (Horizontal stacked bar)
-   ════════════════════════════════════════════════════════════ */
-function _renderRevisionChart() {
-  const cv = document.getElementById('chart-revisions');
-  if (!cv) return;
-  _destroy('rev');
-
-  const all = AN.data.revisions || [];
-  if (!all.length) { _noDataMsg(cv,'No revisions scheduled yet'); return; }
-
-  const map = {};
-  all.forEach(r=>{ const s=r.subject||'General'; if(!map[s]) map[s]={done:0,pending:0}; r.done?map[s].done++:map[s].pending++; });
-  const labels  = Object.keys(map);
-  const done    = labels.map(s=>map[s].done);
-  const pending = labels.map(s=>map[s].pending);
-
-  AN.charts.rev = new Chart(cv,{
-    type:'bar',
-    data:{
-      labels,
-      datasets:[
-        {label:'Completed', data:done,    backgroundColor:CC.green,  borderRadius:4, borderSkipped:false},
-        {label:'Pending',   data:pending, backgroundColor:'rgba(250,130,49,.55)', borderRadius:4, borderSkipped:false},
+      datasets: [
+        { label:'Done',    data: labels.map(s => bySubject[s].done),    backgroundColor:'rgba(67,233,123,.6)',  borderRadius:4 },
+        { label:'Pending', data: labels.map(s => bySubject[s].pending), backgroundColor:'rgba(245,87,108,.5)',  borderRadius:4 },
       ],
     },
-    options:{
-      indexAxis:'y', responsive:true,
-      plugins:{
-        legend:{display:true, position:'bottom', labels:{color:CC.tick, font:{size:10}, boxWidth:11, padding:10}},
-        tooltip:{backgroundColor:'rgba(10,12,26,.95)', titleColor:'#f0f2ff', bodyColor:'#9ca3c0'},
-      },
-      scales:{
-        x:{stacked:true, grid:{color:CC.grid}, ticks:{color:CC.tick, font:{size:10}, stepSize:1}, beginAtZero:true},
-        y:{stacked:true, grid:{display:false}, ticks:{color:CC.tick, font:{size:10}}},
-      },
-    },
+    options: { ..._chartOpts('Revision by subject'), scales: { x: { stacked:true, ..._xAxis() }, y: { stacked:true, ..._yAxis() } } },
   });
 }
 
-/* ════════════════════════════════════════════════════════════
-   MASTERY BARS
-   ════════════════════════════════════════════════════════════ */
-function _renderMastery(qr) {
+// ── Topic mastery bars ────────────────────────────────────
+function _buildMasteryBars(quizzes) {
   const el = document.getElementById('mastery-bars');
   if (!el) return;
 
-  const subjects = ['OS','DBMS','DSA','CN','AI','Math'];
-  const map      = {};
-  (AN.data.quizResults||[]).forEach(r=>{
-    const s=r.subject||'General';
-    if(!map[s]) map[s]={c:0,t:0};
-    map[s].c+=r.score; map[s].t+=r.total;
+  const bySubject = {};
+  quizzes.forEach(q => {
+    const s = q.subject || 'General';
+    if (!bySubject[s]) bySubject[s] = [];
+    bySubject[s].push(q.score || 0);
   });
 
-  el.innerHTML = subjects.map(sub=>{
-    const d = map[sub];
-    if (!d) return `
-      <div class="mastery-subject">
-        <span class="mastery-name">${sub}</span>
-        <div class="mastery-bar"><div class="mastery-fill" style="width:0%"></div></div>
-        <span class="mastery-pct">—</span>
-        <span class="mastery-status text-muted">No data</span>
-      </div>`;
+  const entries = Object.entries(bySubject)
+    .map(([s, scores]) => ({ subject:s, avg: Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) }))
+    .sort((a,b) => b.avg - a.avg)
+    .slice(0, 8);
 
-    const pct    = Math.round((d.c/d.t)*100);
-    const color  = pct<50?'var(--red)':pct<70?'var(--orange)':pct<85?'var(--purple)':'var(--green)';
-    const status = pct<50?'Needs Work':pct<70?'Improving':pct<85?'Good':'Excellent';
+  if (!entries.length) { el.innerHTML = '<div class="text-sm text-muted">Take some quizzes to see mastery data.</div>'; return; }
+
+  el.innerHTML = entries.map(e => {
+    const color = e.avg >= 85 ? 'var(--green)' : e.avg >= 70 ? 'var(--purple)' : e.avg >= 50 ? 'var(--orange)' : 'var(--red)';
+    const status = e.avg >= 85 ? 'Excellent' : e.avg >= 70 ? 'Good' : e.avg >= 50 ? 'Improving' : 'Needs Work';
     return `
       <div class="mastery-subject">
-        <span class="mastery-name font-bold text-sm">${sub}</span>
-        <div class="mastery-bar">
-          <div class="mastery-fill" style="width:${pct}%;background:${color}"></div>
-        </div>
-        <span class="mastery-pct">${pct}%</span>
+        <span class="mastery-name">${e.subject}</span>
+        <div class="mastery-bar"><div class="mastery-fill" style="width:${e.avg}%;background:${color}"></div></div>
+        <span class="mastery-pct">${e.avg}%</span>
         <span class="mastery-status" style="color:${color}">${status}</span>
       </div>`;
   }).join('');
 }
 
-/* ════════════════════════════════════════════════════════════
-   AI INSIGHTS
-   ════════════════════════════════════════════════════════════ */
-function _renderInsights(sess, qr, revDone, streak) {
+// ── AI Insights (derived from real data) ─────────────────
+function _buildInsights(data, sessions, quizzes) {
   const el = document.getElementById('ai-insights');
   if (!el) return;
 
   const insights = [];
-  const totalMins= sess.reduce((s,r)=>s+r.duration,0);
-  const avgScore = qr.length ? Math.round(qr.reduce((s,r)=>s+r.pct,0)/qr.length) : 0;
+  const totalMins = sessions.reduce((a,s) => a+(s.duration||0), 0);
 
-  // Streak insight
-  if (streak.current >= 7)
-    insights.push({icon:'🔥',color:'rgba(250,130,49,.15)',c:'var(--orange)',title:'Impressive streak!',body:`${streak.current} days in a row. Keep the momentum going!`});
-  else if (streak.current === 0)
-    insights.push({icon:'⚠️',color:'rgba(245,87,108,.1)',c:'var(--red)',title:'Streak broken',body:'Study a little today to restart your streak!'});
+  // Best study day
+  const byDay = {};
+  sessions.forEach(s => {
+    const d = new Date(s.date).getDay();
+    byDay[d] = (byDay[d]||0) + (s.duration||0);
+  });
+  const bestDay = Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
+  if (bestDay) {
+    const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][bestDay[0]];
+    insights.push({ icon:'📅', bg:'rgba(102,126,234,.12)', col:'var(--purple)', text:`Your most productive day is <strong>${dayName}</strong> — try to schedule harder topics then.` });
+  }
 
-  // Study time insight
-  const avgDaily = totalMins / AN.days;
-  if (avgDaily >= 60)
-    insights.push({icon:'⏱️',color:'rgba(102,126,234,.12)',c:'var(--purple)',title:'Solid study time',body:`Averaging ${Math.round(avgDaily)}min/day. Consistent effort pays off!`});
-  else
-    insights.push({icon:'💡',color:'rgba(79,172,254,.1)',c:'var(--cyan)',title:'Increase study time',body:`Aim for 60+ min/day. Even short sessions make a big difference.`});
+  // Weak subjects
+  const subScores = {};
+  quizzes.forEach(q => { const s=q.subject||'General'; if(!subScores[s])subScores[s]=[]; subScores[s].push(q.score||0); });
+  const weak = Object.entries(subScores).map(([s,sc])=>({s,avg:Math.round(sc.reduce((a,b)=>a+b,0)/sc.length)})).filter(x=>x.avg<60).sort((a,b)=>a.avg-b.avg)[0];
+  if (weak) insights.push({ icon:'⚠️', bg:'rgba(245,158,11,.12)', col:'var(--orange)', text:`<strong>${weak.s}</strong> needs attention (avg ${weak.avg}%). Schedule extra revision sessions.` });
 
-  // Quiz insight
-  if (avgScore >= 80)
-    insights.push({icon:'🏆',color:'rgba(67,233,123,.1)',c:'var(--green)',title:'Quiz performance',body:`${avgScore}% average — excellent! Try harder difficulty to challenge yourself.`});
-  else if (avgScore > 0)
-    insights.push({icon:'📚',color:'rgba(250,130,49,.1)',c:'var(--orange)',title:'Quiz score',body:`${avgScore}% average. Review explanations for wrong answers to improve.`});
+  // Study consistency
+  const uniqueDays = [...new Set(sessions.map(s=>s.date))].length;
+  if (uniqueDays < 3 && _period >= 7) insights.push({ icon:'🔥', bg:'rgba(239,68,68,.1)', col:'var(--red)', text:`You studied on only <strong>${uniqueDays} day(s)</strong> this period. Consistency beats intensity — try daily 30-min sessions.` });
+  else if (uniqueDays >= 5) insights.push({ icon:'🌟', bg:'rgba(67,233,123,.1)', col:'var(--green)', text:`Great consistency! You've studied on <strong>${uniqueDays} days</strong> this period. Keep it up!` });
 
-  // Revision insight
-  const dueRevs = (AN.data.revisions||[]).filter(r=>!r.done&&r.date<=today());
-  if (dueRevs.length)
-    insights.push({icon:'🔄',color:'rgba(240,147,251,.1)',c:'var(--pink)',title:`${dueRevs.length} revision${dueRevs.length>1?'s':''} overdue`,body:'Head to Revision Center to catch up on your schedule.'});
+  // Note count
+  const notes = data.notes || [];
+  if (notes.length < 3) insights.push({ icon:'📝', bg:'rgba(79,172,254,.1)', col:'var(--cyan)', text:`You have <strong>${notes.length} note(s)</strong>. Add more study material to unlock AI quizzes and flashcards.` });
 
-  // Default encouragement
-  if (!insights.length)
-    insights.push({icon:'🌟',color:'rgba(102,126,234,.1)',c:'var(--purple)',title:'Keep it up!',body:'You are on track. Consistency is the key to exam success.'});
+  // Average session length
+  if (sessions.length > 0) {
+    const avgMins = Math.round(totalMins / sessions.length);
+    if (avgMins < 20) insights.push({ icon:'⏱️', bg:'rgba(102,126,234,.1)', col:'var(--purple)', text:`Your average session is <strong>${avgMins} minutes</strong>. Try the Pomodoro method — 25-min focused blocks work best.` });
+    else insights.push({ icon:'💪', bg:'rgba(67,233,123,.1)', col:'var(--green)', text:`Average session length: <strong>${avgMins} minutes</strong>. Solid focus blocks!` });
+  }
 
-  el.innerHTML = insights.map(i=>`
-    <div class="insight-card">
-      <div class="insight-icon" style="background:${i.color}">
-        <span style="color:${i.c}">${i.icon}</span>
-      </div>
-      <div>
-        <div class="font-bold text-sm mb-1" style="color:${i.c}">${i.title}</div>
-        <div class="text-xs text-dim" style="line-height:1.55">${i.body}</div>
-      </div>
+  if (!insights.length) { el.innerHTML = '<div class="text-sm text-muted">Keep studying to generate personalised insights.</div>'; return; }
+
+  el.innerHTML = insights.slice(0,4).map(i => `
+    <div class="insight-card" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:9px">
+      <div class="insight-icon" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;background:${i.bg};color:${i.col}">${i.icon}</div>
+      <div class="text-sm text-dim" style="line-height:1.6">${i.text}</div>
     </div>`).join('');
 }
 
-/* ════════════════════════════════════════════════════════════
-   STUDY HEATMAP (Last 28 days)
-   ════════════════════════════════════════════════════════════ */
-function _renderHeatmap() {
+// ── Study heatmap ─────────────────────────────────────────
+function _buildHeatmap(sessions) {
   const el = document.getElementById('study-heatmap');
   if (!el) return;
 
-  const n    = 28;
-  const sess = AN.data.sessions || [];
-  const days = Array.from({length:n},(_,i)=>{
-    const d  = new Date(); d.setDate(d.getDate()-(n-1-i));
-    const ds = dateStr(d);
-    const m  = sess.filter(s=>s.date===ds).reduce((s,x)=>s+x.duration,0);
-    return { ds, label:d.toLocaleDateString('en',{weekday:'short', month:'short', day:'numeric'}), mins:m };
-  });
+  // Build 28-day grid
+  const byDate = {};
+  sessions.forEach(s => { byDate[s.date] = (byDate[s.date]||0) + (s.duration||0); });
+  const maxMins = Math.max(...Object.values(byDate), 1);
 
-  const maxMins = Math.max(...days.map(d=>d.mins), 60);
-
-  el.innerHTML = days.map(d=>{
-    const intensity = d.mins/maxMins;
-    const bg = d.mins===0
-      ? 'rgba(255,255,255,.04)'
-      : `rgba(102,126,234,${0.15 + intensity*0.75})`;
-    const tip = `${d.label}: ${d.mins?fmtMins(d.mins):'No study'}`;
-    return `<div class="hmap-cell" style="background:${bg}" title="${tip}"></div>`;
-  }).join('');
-
-  // Weekday labels
-  const lblEl = document.getElementById('heatmap-labels');
-  if (lblEl) {
-    const weeks = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    lblEl.innerHTML = weeks.map(w=>`<span class="text-xs text-muted" style="flex:1;text-align:center">${w}</span>`).join('');
-    lblEl.style.display = 'grid';
-    lblEl.style.gridTemplateColumns = 'repeat(7,1fr)';
-    lblEl.style.gap = '3px';
+  el.innerHTML = '';
+  for (let i = 27; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().split('T')[0];
+    const mins = byDate[ds] || 0;
+    const intensity = mins / maxMins;
+    const cell = document.createElement('div');
+    cell.className = 'hmap-cell';
+    cell.title = `${ds}: ${Math.round(mins)}min`;
+    if (mins > 0) {
+      cell.style.background = `rgba(102,126,234,${0.15 + intensity * 0.7})`;
+    }
+    el.appendChild(cell);
   }
+
+  // Day labels
+  const labEl = document.getElementById('heatmap-labels');
+  if (labEl) {
+    const days = ['4w ago','3w ago','2w ago','Last week','This week'];
+    labEl.innerHTML = days.map(d => `<span class="text-xs text-muted">${d}</span>`).join('');
+  }
+}
+
+// ── Chart option helpers ──────────────────────────────────
+function _chartOpts(label) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend:{ display:false }, tooltip:{ backgroundColor:'rgba(10,12,26,.9)', titleColor:'#e8eaf6', bodyColor:'rgba(200,200,255,.8)', borderColor:'rgba(102,126,234,.2)', borderWidth:1 } },
+    scales: { y: _yAxis(), x: _xAxis() },
+  };
+}
+function _yAxis() {
+  return { beginAtZero:true, grid:{ color:'rgba(100,110,160,.08)' }, ticks:{ color:'rgba(200,200,255,.5)', font:{ size:11 } } };
+}
+function _xAxis() {
+  return { grid:{ display:false }, ticks:{ color:'rgba(200,200,255,.5)', font:{ size:11 } } };
 }

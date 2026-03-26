@@ -11,11 +11,11 @@
 const API_BASE = '/api';
 
 /* ── Token / User ── */
-function getToken() { return localStorage.getItem('sai_token') || null; }
-function setToken(t){ if(t) localStorage.setItem('sai_token',t); else localStorage.removeItem('sai_token'); }
-function clearToken(){ localStorage.removeItem('sai_token'); localStorage.removeItem('sai_user'); }
-function getUser()  { try{ return JSON.parse(localStorage.getItem('sai_user')||'null'); }catch{ return null; } }
-function setUser(u) { localStorage.setItem('sai_user', JSON.stringify(u)); }
+function getToken() { return localStorage.getItem('sa_token') || null; }
+function setToken(t){ if(t) localStorage.setItem('sa_token',t); else localStorage.removeItem('sa_token'); }
+function clearToken(){ localStorage.removeItem('sa_token'); localStorage.removeItem('sa_user'); }
+function getUser()  { try{ return JSON.parse(localStorage.getItem('sa_user')||'null'); }catch{ return null; } }
+function setUser(u) { localStorage.setItem('sa_user', JSON.stringify(u)); }
 
 /* ── HTTP helpers ── */
 async function apiPost(path, body={}) {
@@ -54,23 +54,27 @@ async function apiDel(path) {
 async function requireAuth() {
   const token = getToken();
   const user  = getUser();
+  if (!token || !user) { window.location.href = '/index.html'; return null; }
+  return user;
+}
 
-  if (!token || !user) {
-    window.location.href = '/index.html';
-    return null;
+/**
+ * Global Page Initializer
+ * Call this on every protected page: initPage('Page Name').then(user => ...)
+ */
+async function initPage(title) {
+  console.log(`🚀 Initializing page: ${title}`);
+  const user = await requireAuth();
+  if (!user) return null;
+
+  // Build sidebar + topbar
+  if (typeof buildSidebar === 'function') {
+    buildSidebar(user, title);
   }
 
-  // Verify token is still valid
-  try {
-    await apiGet('/data/streak');
-  } catch(e) {
-    if (e.message === 'Unauthorized. Please login.' || e.message === 'Unauthorized') {
-      clearToken();
-      window.location.href = '/index.html';
-      return null;
-    }
-    // Network errors — let page load anyway (offline mode)
-  }
+  // Hide loader if any
+  if (typeof hidePageLoader === 'function') hidePageLoader();
+  
   return user;
 }
 
@@ -134,7 +138,7 @@ async function doSignup() {
 }
 
 async function doGuest() {
-  const btn = document.querySelector('.auth-btn-guest');
+  const btn = document.getElementById('guest-btn') || document.querySelector('.auth-btn-guest');
   if(btn){ btn.textContent='Loading…'; btn.disabled=true; }
   try {
     const data = await apiPost('/login', { email:'demo@studyai.com', password:'demo1234' });
@@ -195,6 +199,7 @@ function updateTopbarStreak(n=0) {
 function _err(el, msg) {
   if(!el){ showToast(msg,'error'); return; }
   el.textContent = msg;
+  el.style.display = 'block';
   el.classList.add('show');
 }
 function _loading(btn, text, on) {

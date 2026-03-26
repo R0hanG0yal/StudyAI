@@ -3,172 +3,98 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="description" content="StudyAI Dashboard — your study overview"/>
   <title>StudyAI — Dashboard</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>"/>
   <link rel="stylesheet" href="assets/css/global.css"/>
   <link rel="stylesheet" href="assets/css/components.css"/>
+  <!-- Dark Mode & Reading Mode Support -->
+  <script>
+    if (localStorage.getItem('sa_theme') !== 'light') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+    if (localStorage.getItem('sa_reading_mode') === 'true') {
+      document.documentElement.setAttribute('data-reading-mode', 'true');
+    }
+  </script>
   <style>
-    /* ── Dashboard-specific styles ── */
-    .welcome-banner {
-      background    : linear-gradient(135deg, rgba(102,126,234,.15) 0%, rgba(240,147,251,.1) 50%, rgba(79,172,254,.08) 100%);
-      border        : 1px solid rgba(102,126,234,.2);
-      border-radius : 20px;
-      padding       : 28px 32px;
-      margin-bottom : 24px;
-      position      : relative;
-      overflow      : hidden;
-    }
-    .welcome-banner::before {
-      content   : '';
-      position  : absolute;
-      top:-60px; right:-60px;
-      width:220px; height:220px;
-      background: radial-gradient(circle, rgba(102,126,234,.18), transparent 70%);
-      border-radius:50%;
-    }
-    .welcome-banner::after {
-      content   : '';
-      position  : absolute;
-      bottom:-40px; left:30%;
-      width:180px; height:180px;
-      background: radial-gradient(circle, rgba(240,147,251,.12), transparent 70%);
-      border-radius:50%;
-    }
-    .welcome-greeting {
-      font-family  : var(--font-display);
-      font-size    : 1.8rem;
-      font-weight  : 800;
-      margin-bottom: 6px;
-      position     : relative; z-index:1;
-    }
-    .welcome-sub { color:var(--text-dim); font-size:.9rem; position:relative; z-index:1; }
-    .welcome-actions { display:flex; gap:10px; margin-top:18px; position:relative; z-index:1; flex-wrap:wrap; }
-
-    /* Rec card */
-    .rec-card {
-      display      : flex;
-      align-items  : center;
-      gap          : 12px;
-      padding      : 12px 14px;
-      background   : rgba(255,255,255,.04);
-      border       : 1px solid var(--border);
-      border-radius: 12px;
-      margin-bottom: 8px;
-      transition   : all .18s;
-    }
-    .rec-card:hover { background:rgba(255,255,255,.07); border-color:rgba(102,126,234,.25); transform:translateX(3px); }
-    .rec-icon { font-size:1.2rem; flex-shrink:0; width:36px; text-align:center; }
-    .rec-text { flex:1; font-size:.83rem; line-height:1.5; }
-
-    /* Quick add grid */
-    .quick-add-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-    .quick-add-item {
-      display       : flex;
-      flex-direction: column;
-      align-items   : center;
-      gap           : 7px;
-      padding       : 16px 10px;
-      background    : rgba(255,255,255,.04);
-      border        : 1px solid var(--border);
-      border-radius : 12px;
-      cursor        : pointer;
-      transition    : all .18s;
-      text-decoration:none;
-      color         : var(--text);
-    }
-    .quick-add-item:hover { transform:translateY(-3px); border-color:rgba(102,126,234,.3); background:rgba(102,126,234,.08); }
-    .quick-add-icon { font-size:1.5rem; }
-    .quick-add-label{ font-size:.74rem; font-weight:600; color:var(--text-dim); }
-
-    /* Exam card */
-    .exam-countdown {
-      display       : flex;
-      align-items   : center;
-      justify-content:space-between;
-      padding       : 12px 14px;
-      background    : rgba(255,255,255,.04);
-      border        : 1px solid var(--border);
-      border-radius : 12px;
-      margin-bottom : 8px;
-      transition    : .18s;
-    }
-    .exam-countdown:hover { background:rgba(255,255,255,.07); }
-    .exam-days-num {
-      font-family  : var(--font-display);
-      font-size    : 1.8rem;
-      font-weight  : 800;
-      line-height  : 1;
-    }
-    .exam-days-lbl { font-size:.62rem; color:var(--text-muted); }
-
-    /* Chart card */
-    .chart-wrap { position:relative; height:170px; }
-
-    /* Section header */
-    .section-header {
-      display      : flex;
-      align-items  : center;
-      justify-content:space-between;
-      margin-bottom: 14px;
-    }
-    .section-title {
-      font-family  : var(--font-display);
-      font-size    : .92rem;
-      font-weight  : 700;
-    }
-    .section-link { font-size:.76rem; color:var(--purple); cursor:pointer; }
-    .section-link:hover { color:var(--pink); }
+    .welcome-banner{background:linear-gradient(135deg,rgba(102,126,234,.15) 0%,rgba(240,147,251,.1) 50%,rgba(79,172,254,.08) 100%);border:1px solid rgba(102,126,234,.2);border-radius:20px;padding:28px 32px;margin-bottom:24px;position:relative;overflow:hidden}
+    .welcome-banner::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(102,126,234,.18),transparent 70%);border-radius:50%}
+    .welcome-greeting{font-family:var(--font-display);font-size:1.8rem;font-weight:800;margin-bottom:6px;position:relative;z-index:1}
+    .welcome-sub{color:var(--text-dim);font-size:.9rem;position:relative;z-index:1}
+    .welcome-actions{display:flex;gap:10px;margin-top:18px;position:relative;z-index:1;flex-wrap:wrap}
+    .rec-card{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;transition:all .18s}
+    .rec-card:hover{background:rgba(255,255,255,.07);border-color:rgba(102,126,234,.25);transform:translateX(3px)}
+    .rec-icon{font-size:1.2rem;flex-shrink:0;width:36px;text-align:center}
+    .rec-text{flex:1;font-size:.83rem;line-height:1.5}
+    .quick-add-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .quick-add-item{display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .18s;text-decoration:none;color:var(--text)}
+    .quick-add-item:hover{transform:translateY(-3px);border-color:rgba(102,126,234,.3);background:rgba(102,126,234,.08)}
+    .quick-add-icon{font-size:1.5rem}
+    .quick-add-label{font-size:.74rem;font-weight:600;color:var(--text-dim)}
+    .exam-countdown{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;transition:.18s}
+    .exam-countdown:hover{background:rgba(255,255,255,.07)}
+    .exam-days-num{font-family:var(--font-display);font-size:1.8rem;font-weight:800;line-height:1}
+    .chart-wrap{position:relative;height:170px}
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .section-title{font-family:var(--font-display);font-size:.92rem;font-weight:700}
+    .section-link{font-size:.76rem;color:var(--purple);cursor:pointer}
+    .section-link:hover{color:var(--pink)}
   </style>
 </head>
 <body>
-<div class="bg-orbs">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
-</div>
-
+<div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
 <div class="app-layout" id="app-layout">
-  <!-- Sidebar injected by sidebar.js -->
-
   <div class="main-content">
-    <!-- Topbar injected by sidebar.js -->
-
     <div class="page-body">
 
       <!-- Welcome Banner -->
       <div class="welcome-banner">
-        <div class="welcome-greeting">
-          Good <span id="greet-time">morning</span>, <span id="greet-name" class="grad-text">Student</span>! 👋
-        </div>
-        <p class="welcome-sub">Here's your study overview for today</p>
-        <div class="welcome-actions">
-          <a href="/focus.html" class="btn btn-primary btn-sm">⚡ Start Focus Session</a>
-          <a href="/chat.html"  class="btn btn-secondary btn-sm">🤖 Ask AI</a>
-          <a href="/quiz.html"  class="btn btn-secondary btn-sm">🎯 Take a Quiz</a>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:20px;">
+          <div>
+            <div class="welcome-greeting">
+              Good <span id="greet-time">morning</span>, <span id="greet-name" class="grad-text">Student</span>! 👋
+            </div>
+            <p class="welcome-sub">Here's your study overview for today</p>
+            <div class="welcome-actions">
+              <a href="/focus.html"     class="btn btn-primary btn-sm">⚡ Start Focus Session</a>
+              <a href="/chat.html"      class="btn btn-secondary btn-sm">🤖 Ask AI</a>
+              <a href="/quiz.html"      class="btn btn-secondary btn-sm">🎯 Take a Quiz</a>
+            </div>
+          </div>
+          
+          <!-- Student Level Card -->
+          <div class="card" style="min-width:240px; background:rgba(255,255,255,0.06); border-color:rgba(124,58,237,0.15); padding:16px;">
+            <div class="flex items-center gap-3 mb-2">
+              <div id="student-level-icon" style="width:42px; height:42px; border-radius:50%; background:var(--grad-1); display:flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:800; color:#fff; box-shadow:0 0 15px rgba(124,58,237,0.3)">1</div>
+              <div>
+                <div class="text-xs font-bold uppercase tracking-wider opacity-60">Scholar Rank</div>
+                <div id="student-rank" class="text-sm font-bold">Novice Initiate</div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-xs opacity-60">Level Progress</span>
+              <span id="level-xp" class="text-xs font-bold">0 / 60 XP</span>
+            </div>
+            <div class="progress" style="height:6px; background:rgba(255,255,255,0.1)">
+              <div id="level-progress" class="progress-fill progress-gradient" style="width:0%"></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Stat Cards -->
-      <div class="stat-grid" id="stat-grid">
-        <!-- Filled by JS -->
-      </div>
+      <div class="stat-grid" id="stat-grid"></div>
 
-      <!-- Row 1: Tasks + Exams -->
       <div class="grid-2" style="margin-bottom:16px">
-
         <!-- Today's Tasks -->
         <div class="card">
           <div class="section-header">
             <span class="section-title">📋 Today's Tasks</span>
             <a class="section-link" href="/planner.html">View all →</a>
           </div>
-          <div id="dash-tasks">
-            <div class="flex items-center gap-3" style="padding:10px;color:var(--text-muted)">
-              <div class="spinner"></div><span class="text-sm">Loading…</span>
-            </div>
-          </div>
-          <button class="btn btn-secondary btn-sm w-full" style="margin-top:10px;justify-content:center"
-                  onclick="openModal('modal-add-task')">+ Add Task</button>
+          <div id="dash-tasks"><div class="flex items-center gap-3" style="padding:10px;color:var(--text-muted)"><div class="spinner"></div><span class="text-sm">Loading…</span></div></div>
+          <!-- ✅ No inline onclick -->
+          <button class="btn btn-secondary btn-sm w-full" id="btn-add-task" style="margin-top:10px;justify-content:center">+ Add Task</button>
         </div>
 
         <!-- Upcoming Exams -->
@@ -177,30 +103,20 @@
             <span class="section-title">📅 Upcoming Exams</span>
             <a class="section-link" href="/planner.html">Manage →</a>
           </div>
-          <div id="dash-exams">
-            <div class="flex items-center gap-3" style="padding:10px;color:var(--text-muted)">
-              <div class="spinner"></div><span class="text-sm">Loading…</span>
-            </div>
-          </div>
-          <button class="btn btn-secondary btn-sm w-full" style="margin-top:10px;justify-content:center"
-                  onclick="openModal('modal-add-exam')">+ Add Exam</button>
+          <div id="dash-exams"><div class="flex items-center gap-3" style="padding:10px;color:var(--text-muted)"><div class="spinner"></div><span class="text-sm">Loading…</span></div></div>
+          <!-- ✅ No inline onclick -->
+          <button class="btn btn-secondary btn-sm w-full" id="btn-add-exam" style="margin-top:10px;justify-content:center">+ Add Exam</button>
         </div>
       </div>
 
-      <!-- Row 2: AI Recs + Activity + Quick Add -->
       <div class="grid-2" style="margin-bottom:16px">
-
         <!-- AI Recommendations -->
         <div class="card card-gradient">
-          <div class="section-header">
-            <span class="section-title">🤖 AI Recommendations</span>
-          </div>
+          <div class="section-header"><span class="section-title">🤖 AI Recommendations</span></div>
           <div id="dash-recs"></div>
         </div>
 
-        <!-- Quick Add + Activity -->
         <div style="display:flex;flex-direction:column;gap:14px">
-          <!-- Quick Add -->
           <div class="card">
             <div class="section-title" style="margin-bottom:12px">⚡ Quick Actions</div>
             <div class="quick-add-grid">
@@ -212,20 +128,14 @@
               <a href="/focus.html"      class="quick-add-item"><span class="quick-add-icon">⚡</span><span class="quick-add-label">Focus</span></a>
             </div>
           </div>
-
-          <!-- Recent Activity -->
           <div class="card" style="flex:1">
-            <div class="section-header">
-              <span class="section-title">⚡ Recent Activity</span>
-            </div>
+            <div class="section-header"><span class="section-title">⚡ Recent Activity</span></div>
             <div id="dash-activity"></div>
           </div>
         </div>
       </div>
 
-      <!-- Row 3: Weak Topics + Weekly Chart -->
       <div class="grid-2">
-        <!-- Weak Topics -->
         <div class="card">
           <div class="section-header">
             <span class="section-title">⚠️ Weak Topics</span>
@@ -233,28 +143,22 @@
           </div>
           <div id="dash-weak"></div>
         </div>
-
-        <!-- Weekly Chart -->
         <div class="card">
-          <div class="section-header">
-            <span class="section-title">📈 This Week's Study Hours</span>
-          </div>
-          <div class="chart-wrap">
-            <canvas id="week-chart"></canvas>
-          </div>
+          <div class="section-header"><span class="section-title">📈 This Week's Study Hours</span></div>
+          <div class="chart-wrap"><canvas id="week-chart"></canvas></div>
         </div>
       </div>
 
-    </div><!-- /page-body -->
-  </div><!-- /main-content -->
-</div><!-- /app-layout -->
+    </div>
+  </div>
+</div>
 
-<!-- ── ADD TASK MODAL ── -->
+<!-- Add Task Modal -->
 <div class="modal-overlay" id="modal-add-task">
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">+ Add Task</span>
-      <button class="modal-close" onclick="closeModal('modal-add-task')">✕</button>
+      <button class="modal-close" data-close="modal-add-task">✕</button>
     </div>
     <div class="form-group">
       <label class="form-label">Task Description</label>
@@ -263,10 +167,7 @@
     <div class="grid-2" style="gap:10px">
       <div class="form-group">
         <label class="form-label">Subject</label>
-        <select id="task-sub" class="form-input">
-          <option>OS</option><option>DBMS</option><option>DSA</option>
-          <option>CN</option><option>AI</option><option>Math</option><option>General</option>
-        </select>
+        <select id="task-sub" class="form-input"></select>
       </div>
       <div class="form-group">
         <label class="form-label">Priority</label>
@@ -281,16 +182,17 @@
       <label class="form-label">Due Date</label>
       <input id="task-date" class="form-input" type="date"/>
     </div>
-    <button class="btn btn-primary btn-full" onclick="addTaskDash()">Add Task</button>
+    <!-- ✅ No inline onclick -->
+    <button class="btn btn-primary btn-full" id="btn-save-task">Add Task</button>
   </div>
 </div>
 
-<!-- ── ADD EXAM MODAL ── -->
+<!-- Add Exam Modal -->
 <div class="modal-overlay" id="modal-add-exam">
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">📅 Add Exam</span>
-      <button class="modal-close" onclick="closeModal('modal-add-exam')">✕</button>
+      <button class="modal-close" data-close="modal-add-exam">✕</button>
     </div>
     <div class="form-group">
       <label class="form-label">Subject</label>
@@ -308,14 +210,13 @@
         </select>
       </div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="addExamDash()">Add Exam</button>
+    <!-- ✅ No inline onclick -->
+    <button class="btn btn-primary btn-full" id="btn-save-exam">Add Exam</button>
   </div>
 </div>
 
-<!-- Toast -->
 <div id="toast-container"></div>
 
-<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="assets/js/auth.js"></script>
 <script src="assets/js/utils.js"></script>
@@ -323,15 +224,29 @@
 <script src="assets/js/storage.js"></script>
 <script src="assets/js/dashboard.js"></script>
 <script>
-  // Set default date inputs
-  document.getElementById('task-date').value = today();
-  document.getElementById('exam-date').value = addDays(14);
+  // Set default dates without inline handlers
+  document.addEventListener('DOMContentLoaded', () => {
+    const td = document.getElementById('task-date');
+    const ed = document.getElementById('exam-date');
+    if (td) td.value = new Date().toISOString().split('T')[0];
+    if (ed) { const d = new Date(); d.setDate(d.getDate()+14); ed.value = d.toISOString().split('T')[0]; }
 
-  // Boot
-  initPage('Dashboard').then(user => {
-    if (user) loadDashboard(user);
+    // ✅ All modal open/close wired here — zero inline onclick
+    document.getElementById('btn-add-task')?.addEventListener('click', () => openModal('modal-add-task'));
+    document.getElementById('btn-add-exam')?.addEventListener('click', () => openModal('modal-add-exam'));
+    document.getElementById('btn-save-task')?.addEventListener('click', addTaskDash);
+    document.getElementById('btn-save-exam')?.addEventListener('click', addExamDash);
+
+    // Close buttons (data-close pattern)
+    document.querySelectorAll('[data-close]').forEach(btn => {
+      btn.addEventListener('click', () => closeModal(btn.dataset.close));
+    });
+
+    // Subject selects populated from central list
+    populateSubjectSelect(document.getElementById('task-sub'));
   });
-</script>
 
+  initPage('Dashboard').then(user => { if (user) loadDashboard(user); });
+</script>
 </body>
 </html>

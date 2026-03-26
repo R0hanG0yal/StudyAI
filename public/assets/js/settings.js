@@ -1,201 +1,223 @@
 /* ============================================================
-   STUDYAI — SETTINGS
-   File: public/assets/js/settings.js
+   STUDYAI — settings.js  (Part 4 + Part 7)
+   Settings persistence: theme, accent, subjects, preferences
    ============================================================ */
-'use strict';
-
-const ACCENT_VARS = {
-  purple: { a:'#667eea', a2:'#764ba2', a3:'#43e97b', a4:'#fb923c', a5:'#f5576c' },
-  pink  : { a:'#f093fb', a2:'#f5576c', a3:'#43e97b', a4:'#fb923c', a5:'#f5576c' },
-  blue  : { a:'#4facfe', a2:'#00f2fe', a3:'#43e97b', a4:'#fb923c', a5:'#f5576c' },
-  green : { a:'#43e97b', a2:'#38f9d7', a3:'#4facfe', a4:'#fb923c', a5:'#f5576c' },
-  orange: { a:'#fa709a', a2:'#fee140', a3:'#43e97b', a4:'#4facfe', a5:'#f5576c' },
-};
 
 async function initSettings(user) {
-  _loadProfile(user);
-  await _loadStoredPrefs();
-  _renderSubjectChips();
+  // ── Populate profile fields ──────────────────────────────
+  document.getElementById('s-name').value   = user.name   || '';
+  document.getElementById('s-email').value  = user.email  || '';
+  document.getElementById('s-course').value = user.course || '';
+  const accEl = document.getElementById('account-email');
+  if (accEl) accEl.textContent = user.email || '';
+
+  // ── Load saved preferences from server ───────────────────
+  const settings = await getSettings();
+
+  // Study prefs
+  if (settings.dailyGoal)    document.getElementById('s-goal').value = settings.dailyGoal;
+  if (settings.pomoDuration) document.getElementById('s-pomo').value = settings.pomoDuration;
+
+  // Notifications
+  if (settings.notifications) {
+    const n = settings.notifications;
+    if (document.getElementById('n-study'))    document.getElementById('n-study').checked    = n.study    !== false;
+    if (document.getElementById('n-exam'))     document.getElementById('n-exam').checked     = n.exam     !== false;
+    if (document.getElementById('n-revision')) document.getElementById('n-revision').checked = n.revision !== false;
+    if (document.getElementById('n-achieve'))  document.getElementById('n-achieve').checked  = n.achieve  !== false;
+  }
+
+  // ── Part 7: Theme persistence ─────────────────────────────
+  const savedTheme = localStorage.getItem('sa_theme') || settings.theme || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  const togDark = document.getElementById('tog-dark');
+  if (togDark) togDark.checked = (savedTheme === 'dark');
+
+  // ── Part 7: Accent colour persistence ────────────────────
+  const savedAccent = localStorage.getItem('sa_accent') || settings.accent || 'purple';
+  _applyAccent(savedAccent);
+  document.querySelectorAll('[data-accent]').forEach(dot => {
+    dot.classList.toggle('active', dot.dataset.accent === savedAccent);
+  });
+
+  // ── Part 4: Subjects display ──────────────────────────────
+  _renderSubjectList();
 }
 
-/* ── Profile ── */
-function _loadProfile(user) {
-  if (!user) return;
-  const nEl = document.getElementById('s-name');
-  const eEl = document.getElementById('s-email');
-  const cEl = document.getElementById('s-course');
-  const aEl = document.getElementById('account-email');
-  if (nEl) nEl.value = user.name   || '';
-  if (eEl) eEl.value = user.email  || '';
-  if (cEl) cEl.value = user.course || '';
-  if (aEl) aEl.textContent = user.email || '';
-}
-
-function saveProfile() {
+// ── Profile ───────────────────────────────────────────────
+async function saveProfile() {
   const name   = document.getElementById('s-name')?.value.trim();
-  const email  = document.getElementById('s-email')?.value.trim();
   const course = document.getElementById('s-course')?.value.trim();
-  if (!name) return showToast('Name cannot be empty.','error');
+  if (!name) { showToast('Name cannot be empty', 'warning'); return; }
 
-  const user = { ...getUser(), name, email, course };
-  setUser(user);
-  updateSidebarUser();
-  showToast('Profile saved! ✓','success');
+  const user = getUser();
+  if (user) {
+    user.name   = name;
+    user.course = course || user.course;
+    localStorage.setItem('sa_user', JSON.stringify(user));
+  }
+
+  const settings = await getSettings();
+  settings.profileName   = name;
+  settings.profileCourse = course;
+  await saveSettings(settings);
+  showToast('Profile saved!', 'success');
 }
 
-/* ── Load prefs from server ── */
-async function _loadStoredPrefs() {
-  try {
-    const data = await apiGet('/data');
-    const s    = data.settings || {};
-
-    // Theme
-    const dt = document.getElementById('tog-dark');
-    if (dt) dt.checked = s.theme !== 'light';
-    if (s.theme === 'light') document.documentElement.setAttribute('data-theme','light');
-
-    // Goal + pomo
-    const gEl = document.getElementById('s-goal');
-    const pEl = document.getElementById('s-pomo');
-    if (gEl) gEl.value = s.dailyGoal || 6;
-    if (pEl) pEl.value = s.pomodoro  || 25;
-
-    // Notifications
-    const notify = s.notifications || {};
-    ['study','exam','revision','achieve'].forEach(k=>{
-      const el = document.getElementById('n-'+k);
-      if (el) el.checked = notify[k] !== false;
-    });
-
-    // Accent
-    if (s.accent) {
-      document.querySelectorAll('.accent-dot').forEach(d=>d.classList.remove('active'));
-      const dot = document.querySelector(`.accent-dot[onclick*="${s.accent}"]`);
-      if (dot) dot.classList.add('active');
-      _applyAccent(s.accent);
-    }
-  } catch (_) {}
-}
-
-/* ── Subject chips (display only) ── */
-function _renderSubjectChips() {
-  const el = document.getElementById('subject-chips');
-  if (!el) return;
-  const subjects = ['OS','DBMS','DSA','CN','AI','Math','General'];
-  el.innerHTML = subjects.map(s=>
-    `<span class="badge badge-purple" style="font-size:.72rem;padding:4px 10px">${s}</span>`
-  ).join('');
-}
-
-/* ── Theme ── */
-function toggleTheme(checkbox) {
-  const dark = checkbox.checked;
-  document.documentElement.setAttribute('data-theme', dark?'dark':'light');
-  _saveSettings({theme: dark?'dark':'light'});
-  showToast(`${dark?'Dark 🌙':'Light ☀️'} mode active`,'success');
-}
-
-/* ── Accent ── */
-function setAccent(name, dotEl) {
-  document.querySelectorAll('.accent-dot').forEach(d=>d.classList.remove('active'));
-  if (dotEl) dotEl.classList.add('active');
-  _applyAccent(name);
-  _saveSettings({accent: name});
-  showToast('Accent updated!','success');
-}
-
-function _applyAccent(name) {
-  const vars = ACCENT_VARS[name];
-  if (!vars) return;
-  const root = document.documentElement;
-  root.style.setProperty('--purple', vars.a);
-  root.style.setProperty('--a',      vars.a);
-}
-
-/* ── Preferences ── */
+// ── Preferences ───────────────────────────────────────────
 async function savePreferences() {
-  const goal = parseFloat(document.getElementById('s-goal')?.value)||6;
-  const pomo = parseInt(document.getElementById('s-pomo')?.value)||25;
-  if (goal<=0||goal>24) return showToast('Enter a valid goal (0.5–24h).','error');
-  if (pomo<5||pomo>120) return showToast('Pomodoro must be 5–120 min.','error');
-  await _saveSettings({dailyGoal:goal, pomodoro:pomo});
-  showToast('Preferences saved! ✓','success');
+  const goal = parseFloat(document.getElementById('s-goal')?.value) || 6;
+  const pomo = parseInt(document.getElementById('s-pomo')?.value) || 25;
+
+  const settings = await getSettings();
+  settings.dailyGoal    = goal;
+  settings.pomoDuration = pomo;
+  await saveSettings(settings);
+
+  // Persist goal to localStorage for quick access
+  localStorage.setItem('sa_daily_goal', goal);
+  showToast('Preferences saved!', 'success');
 }
 
-/* ── Notifications ── */
+// ── Notifications ─────────────────────────────────────────
 async function saveNotifications() {
-  const notify = {
+  const settings = await getSettings();
+  settings.notifications = {
     study   : document.getElementById('n-study')?.checked    !== false,
     exam    : document.getElementById('n-exam')?.checked     !== false,
     revision: document.getElementById('n-revision')?.checked !== false,
     achieve : document.getElementById('n-achieve')?.checked  !== false,
   };
-  await _saveSettings({notifications: notify});
-  showToast('Notification preferences saved!','success');
+  await saveSettings(settings);
+  showToast('Notification preferences saved!', 'success');
 }
 
-/* ── Save helper ── */
-async function _saveSettings(patch) {
-  try {
-    const data = await apiGet('/data');
-    const s    = { ...(data.settings||{}), ...patch };
-    await apiPost('/data/settings',{value:s});
-  } catch (e) {
-    showToast('Could not save settings: '+e.message,'error');
+// ── Part 7: Theme toggle (persists to both localStorage + server) ──
+function toggleTheme(checkbox) {
+  const theme = checkbox.checked ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('sa_theme', theme);
+
+  // Persist to server settings async
+  getSettings().then(s => {
+    s.theme = theme;
+    saveSettings(s);
+  });
+}
+
+// ── Part 7: Accent colour (persists to both localStorage + server) ─
+function setAccent(name, dotEl) {
+  _applyAccent(name);
+  localStorage.setItem('sa_accent', name);
+
+  // Update UI
+  document.querySelectorAll('[data-accent]').forEach(d => d.classList.remove('active'));
+  if (dotEl) dotEl.classList.add('active');
+
+  // Persist to server async
+  getSettings().then(s => {
+    s.accent = name;
+    saveSettings(s);
+  });
+  showToast('Accent colour updated!', 'success', 1500);
+}
+
+// Internal: apply accent CSS variables
+function _applyAccent(name) {
+  const accents = {
+    purple : ['#667eea', '#764ba2', 'rgba(102,126,234,.45)'],
+    pink   : ['#f093fb', '#f5576c', 'rgba(240,147,251,.45)'],
+    blue   : ['#4facfe', '#00f2fe', 'rgba(79,172,254,.45)'],
+    green  : ['#43e97b', '#38f9d7', 'rgba(67,233,123,.45)'],
+    orange : ['#fa709a', '#fee140', 'rgba(250,112,154,.45)'],
+  };
+  const [c1, c2, shadow] = accents[name] || accents.purple;
+  const root = document.documentElement;
+  root.style.setProperty('--grad-1', `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`);
+  root.style.setProperty('--purple', c1);
+  root.style.setProperty('--border-focus', `${c1}88`);
+}
+
+// ── Part 4: Subject management ────────────────────────────
+function addCustomSubject() {
+  const inp = document.getElementById('s-new-subject');
+  if (!inp) return;
+  const name = inp.value.trim();
+  if (!name) { showToast('Enter a subject name', 'warning'); return; }
+  if (addSubject(name)) {
+    inp.value = '';
+    _renderSubjectList();
+    showToast(`"${name}" added!`, 'success', 2000);
+  } else {
+    showToast('Subject already exists or name is invalid', 'warning');
   }
 }
 
-/* ── Data export ── */
+function _renderSubjectList() {
+  const container = document.getElementById('subject-chips-display');
+  if (!container) return;
+  const subjects = getSubjects();
+  container.innerHTML = subjects.map(s => `
+    <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(102,126,234,.1);border:1px solid rgba(102,126,234,.2);border-radius:100px;font-size:.76rem;font-weight:600;color:var(--purple)">
+      ${s}
+      <button data-remove-subject="${s}" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.8rem;line-height:1;padding:0 2px" title="Remove">✕</button>
+    </span>`).join('');
+
+  // Wire remove buttons
+  container.querySelectorAll('[data-remove-subject]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.removeSubject;
+      if (DEFAULT_SUBJECTS.includes(name)) {
+        showToast(`Cannot remove default subject "${name}"`, 'warning'); return;
+      }
+      removeSubject(name);
+      _renderSubjectList();
+      showToast(`"${name}" removed`, 'info', 2000);
+    });
+  });
+}
+
+// ── Data Management ───────────────────────────────────────
 async function exportAllData() {
   try {
-    const data = await apiGet('/data');
-    const user = getUser();
-    downloadJSON({ user, data, exported: new Date().toISOString() }, 'studyai-backup-'+today()+'.json');
-    showToast('Data exported!','success');
-  } catch (e) {
-    showToast('Export failed: '+e.message,'error');
+    const data = await getData();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `studyai-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    showToast('Data exported successfully!', 'success');
+  } catch (err) {
+    showToast('Export failed: ' + err.message, 'error');
   }
 }
 
-/* ── Data import ── */
-async function importBackup(inp) {
-  const file = inp.files[0];
+async function importBackup(input) {
+  const file = input?.files?.[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async e => {
-    try {
-      const parsed = JSON.parse(e.target.result);
-      const data   = parsed.data || parsed;
-      if (typeof data !== 'object') throw new Error('Invalid backup format.');
-      await apiPost('/data', data);
-      showToast('Data imported! Reloading…','success');
-      setTimeout(() => location.reload(), 1500);
-    } catch (err) {
-      showToast('Import failed: '+err.message,'error');
-    }
-  };
-  reader.readAsText(file);
-  inp.value = '';
-}
-
-/* ── Reset ── */
-async function resetAllData() {
-  if (!confirm('⚠️ Delete ALL your notes, quizzes, flashcards and history? This cannot be undone.')) return;
-  const typed = prompt('Type RESET to confirm permanent deletion:');
-  if (typed?.trim().toUpperCase() !== 'RESET') return showToast('Reset cancelled.','info');
   try {
-    await apiDel('/data');
-    showToast('All data deleted. Reloading…','info');
-    setTimeout(() => location.reload(), 1500);
-  } catch (e) {
-    showToast('Reset failed: '+e.message,'error');
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!confirm('This will overwrite all your current data. Are you sure?')) return;
+    await saveData(data);
+    invalidateCache();
+    showToast('Data imported successfully! Refreshing…', 'success', 3000);
+    setTimeout(() => window.location.reload(), 2000);
+  } catch (err) {
+    showToast('Import failed: invalid backup file', 'error');
   }
 }
 
-/* ── Keyboard shortcuts ── */
-document.addEventListener('keydown', e => {
-  const tag = document.activeElement?.tagName;
-  if (tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
-  if ((e.ctrlKey||e.metaKey) && e.key==='n') { e.preventDefault(); window.location.href='/notes.html'; }
-  if ((e.ctrlKey||e.metaKey) && e.key==='k') { e.preventDefault(); window.location.href='/chat.html'; }
-});
+async function resetAllData() {
+  if (!confirm('⚠️ This will permanently delete ALL your notes, quizzes, flashcards and progress. This cannot be undone. Are you sure?')) return;
+  if (!confirm('Last warning: delete everything?')) return;
+  try {
+    await apiDelete('/api/data');
+    invalidateCache();
+    showToast('All data deleted. Redirecting…', 'success', 2500);
+    setTimeout(() => window.location.href = '/dashboard.html', 2000);
+  } catch (err) {
+    showToast('Reset failed: ' + err.message, 'error');
+  }
+}
