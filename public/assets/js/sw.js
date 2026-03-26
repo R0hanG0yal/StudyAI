@@ -7,7 +7,7 @@
    - AI endpoints   → Network only (no caching AI responses)
    ============================================================ */
 
-const APP_VERSION   = 'studyai-v1.2';
+const APP_VERSION   = 'studyai-v1.3';
 const STATIC_CACHE  = `${APP_VERSION}-static`;
 const DYNAMIC_CACHE = `${APP_VERSION}-dynamic`;
 const API_CACHE     = `${APP_VERSION}-api`;
