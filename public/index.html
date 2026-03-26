@@ -45,6 +45,9 @@
         <div class="nav-links">
             <a href="#features" class="nav-link">Features</a>
             <a href="#testimonials" class="nav-link">Community</a>
+            <a id="btn-pwa-install-nav" class="nav-link" style="display: none; cursor: pointer; color: var(--p-purple);">
+                <span style="font-size: 1.1rem; vertical-align: middle;">📲</span> Download App
+            </a>
             <a href="#authSection" class="nav-link">Log In</a>
             <a href="#authSection" class="btn btn-primary" style="padding: 10px 24px; font-size: 0.85rem;">Get Started</a>
         </div>
@@ -247,12 +250,34 @@
         <p>© 2026 StudyAI — Built with excellence for students world-wide.</p>
     </footer>
 
+    <!-- PWA Install Popup -->
+    <div id="pwa-install-modal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: #121628; border: 1px solid rgba(102,126,234,0.3); border-radius: 28px; width: 100%; max-width: 440px; padding: 40px; text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,0.6); animation: saFadeUp 0.4s cubic-bezier(0.23, 1, 0.32, 1);">
+            <div style="font-size: 4rem; margin-bottom: 24px;">🧬</div>
+            <h2 style="font-size: 1.8rem; margin-bottom: 12px; font-weight: 800; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Install StudyAI</h2>
+            <p style="color: #8b90b3; line-height: 1.6; margin-bottom: 32px; font-size: 0.95rem;">Experience 2x faster loading, offline study tools, and a seamless native window for your academics.</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button id="pwa-install-modal-yes" class="btn btn-primary" style="padding: 16px; width: 100%; justify-content: center; font-size: 1rem;">
+                    Download App Now →
+                </button>
+                <button id="pwa-install-modal-no" style="background: transparent; border: none; color: #8b90b3; padding: 12px; font-weight: 600; cursor: pointer;">
+                    Later
+                </button>
+            </div>
+        </div>
+    </div>
+    <style>
+        @keyframes saFadeUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+
     <div id="toast-container"></div>
 
     <!-- Auth Helpers -->
     <script src="assets/js/utils.js"></script>
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/index-init.js"></script>
+    
     <!-- PWA -->
     <script src="assets/js/pwa.js"></script>
     
@@ -268,6 +293,36 @@
         });
         document.addEventListener('mouseleave', () => {
             if (card) card.style.transform = `rotateX(15deg) translateY(-20px)`;
+        });
+    </script>
+
+    <script>
+        // Wire up the index-specific install button/modal
+        document.addEventListener('DOMContentLoaded', () => {
+            const navBtn = document.getElementById('btn-pwa-install-nav');
+            const modal = document.getElementById('pwa-install-modal');
+            const yesBtn = document.getElementById('pwa-install-modal-yes');
+            const noBtn = document.getElementById('pwa-install-modal-no');
+
+            // Show nav button if install is available
+            window.addEventListener('beforeinstallprompt', (e) => {
+                if (navBtn) navBtn.style.display = 'inline-flex';
+                // Show modal automatically on first visit after 45s
+                if (!localStorage.getItem('sa_install_dismissed')) {
+                    setTimeout(() => { if (modal) modal.style.display = 'flex'; }, 45000);
+                }
+            });
+
+            navBtn?.addEventListener('click', () => { if (modal) modal.style.display = 'flex'; });
+            noBtn?.addEventListener('click', () => {
+                modal.style.display = 'none';
+                localStorage.setItem('sa_install_dismissed', Date.now().toString());
+            });
+            yesBtn?.addEventListener('click', async () => {
+                modal.style.display = 'none';
+                const accepted = await window.triggerPWAInstall();
+                if (accepted && navBtn) navBtn.style.display = 'none';
+            });
         });
     </script>
 </body>
