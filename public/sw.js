@@ -7,7 +7,7 @@
    - AI endpoints   → Network only (no caching AI responses)
    ============================================================ */
 
-const APP_VERSION   = 'studyai-v1.3';
+const APP_VERSION   = 'studyai-v1.4';
 const STATIC_CACHE  = `${APP_VERSION}-static`;
 const DYNAMIC_CACHE = `${APP_VERSION}-dynamic`;
 const API_CACHE     = `${APP_VERSION}-api`;
@@ -41,6 +41,8 @@ const PRECACHE_ASSETS = [
   '/assets/js/events.js',
   '/assets/js/skeletons.js',
   '/assets/js/smart-upload.js',
+  '/assets/icons/studyai-v2-192.png',
+  '/assets/icons/studyai-v2-512.png',
   '/offline.html',
 ];
 

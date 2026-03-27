@@ -53,7 +53,7 @@ function buildSidebar(user, activePage) {
   const sidebarHtml = `
     <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
       <div class="sidebar-logo">
-        <div class="sidebar-logo-text">🧠 StudyAI</div>
+        <div class="sidebar-logo-text"><img src="assets/icons/studyai-v2-512.png" style="width:28px;height:28px;border-radius:8px;vertical-align:middle;margin-right:8px;box-shadow:0 3px 8px rgba(0,0,0,0.2)">StudyAI</div>
       </div>
       <nav class="sidebar-nav">${navHtml}</nav>
       <div class="sidebar-footer">
