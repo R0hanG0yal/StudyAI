@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href:'/notes.html',      icon:'📝', label:'My Notes',     page:'My Notes' },
   { href:'/chat.html',       icon:'🤖', label:'AI Chat',      page:'AI Chat' },
   { href:'/summaries.html',  icon:'📄', label:'Summaries',    page:'Summaries' },
+  { href:'/customise.html',  icon:'🎨', label:'Customise',    page:'Customise' },
   { section: 'Practice' },
   { href:'/quiz.html',       icon:'🎯', label:'Quiz Zone',    page:'Quiz Zone' },
   { href:'/flashcards.html', icon:'🃏', label:'Flashcards',   page:'Flashcards' },

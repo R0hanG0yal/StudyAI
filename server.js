@@ -445,8 +445,9 @@ Your Goal: Help students master complex topics with step-by-step logic.
 Special Instructions:
 1. Always parse and explain mathematical variables (x, y, rho, delta, etc.) and physical formulas (F=ma, E=mc^2) accurately.
 2. If text looks like science/math, use LaTeX-style formatting for clarity (e.g. $F=ma$).
-3. Use step-by-step reasoning for problem solving.
-4. Format responses with clean markdown headers and bullet points.
+3. **IMPORTANT**: If the provided notes/text contains garbled symbols (like 퐳, 풣, 퐟), these are PDF extraction errors. DO NOT REPEAT THEM. Infer the correct symbols: e.g., if a symbol follows "Potential Difference", it is likely "Volts (V)". If it follows "Charge", it is likely "Coulombs (C)".
+4. Use step-by-step reasoning for problem solving.
+5. Format responses with clean markdown headers and bullet points.
 
 Mode Instructions: ${modeInstructions[mode] || modeInstructions.general}
 
@@ -847,16 +848,24 @@ Format as:
         const pdfData = await pdfParse(buffer, { normalizeWhitespace: true });
         pdfText = cleanText(pdfData.text || '');
         pages = pdfData.numpages || 1;
+        
+        // Detect if text is garbled (common with scientific PDFs having CID font/mapping issues)
+        // Physics PDFs often trigger "Hangul" or other symbols when mapping fails.
+        const cjkRegex    = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\uac00-\ud7af]/g;
+        const garbledChars= (pdfText.match(cjkRegex) || []).length;
+        if (garbledChars > 15 || (pdfText.length > 50 && garbledChars / pdfText.length > 0.04)) {
+           isScanned = true; // Force AI Vision OCR fallback
+        }
       } catch { isScanned = true; }
 
-      if (!isScanned && pdfText.split(/\s+/).filter(Boolean).length < 30) isScanned = true;
+      if (!isScanned && pdfText.split(/\s+/).filter(Boolean).length < 25) isScanned = true;
 
       if (isScanned) {
         try {
           const aiResult = await analyzeImageWithGroq(buffer, 'application/pdf', `You are an Academic PDF OCR Expert. 
-Extract ALL text from this scanned page. 
+Extract ALL text from this page. 
 Preserve scientific structure: keep exponents, subscripts, Greek variables (phi, lambda, etc.) and formulas (E=hf, p=mv) exactly as shown. 
-Transcribe tables or lists accurately.`);
+Transcribe tables, units (Volts, Amperes, etc.), and numbers accurately. If text looks like garbage, describe the image contents instead.`);
           const clean = cleanText(aiResult);
           return res.json({ text: clean, title, type: 'scanned-pdf', pages, wordCount: clean.split(/\s+/).filter(Boolean).length, charCount: clean.length, hasImage: true, aiAnalysis: `Extracted from scanned PDF (${pages} pages) using AI vision.` });
         } catch {

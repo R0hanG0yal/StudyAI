@@ -15,11 +15,11 @@
   <script src="assets/js/performance.js"></script>
   <script src="assets/js/error-handler.js"></script>
 
-  <!-- Dark Mode & Reading Mode Support -->
+  <!-- Theme, Fonts & Customisations -->
+  <script src="assets/js/themes.js"></script>
+  <script src="assets/js/font-controls.js"></script>
+  <script src="assets/js/backgrounds.js"></script>
   <script>
-    if (localStorage.getItem('sa_theme') !== 'light') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
     if (localStorage.getItem('sa_reading_mode') === 'true') {
       document.documentElement.setAttribute('data-reading-mode', 'true');
     }
@@ -228,6 +228,7 @@
 <script src="assets/js/auth.js"></script>
 <script src="assets/js/utils.js"></script>
 <script src="assets/js/sidebar.js"></script>
+<script src="assets/js/sidebar-customiser.js"></script>
 <script src="assets/js/storage.js"></script>
 <script src="assets/js/subjects.js"></script>
 <script src="assets/js/cache.js"></script>

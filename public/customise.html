@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-src 'none'; object-src 'none';"/>
+  <meta name="description" content="StudyAI — Customise your experience"/>
+  <meta property="og:title" content="StudyAI — Customise"/>
+  <meta property="og:type" content="website"/>
+  <title>StudyAI — Customise</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>"/>
+  <link rel="manifest" href="/manifest.json"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"/>
+  <link rel="stylesheet" href="assets/css/global.css"/>
+  <link rel="stylesheet" href="assets/css/components.css"/>
+  <link rel="stylesheet" href="assets/css/mobile.css"/>
+  <style>
+    .hub-section { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r); padding:22px; margin-bottom:16px; transition:all .2s; }
+    .hub-section:hover { border-color:rgba(102,126,234,.2); }
+    .hub-title { font-family:var(--font-display); font-size:.92rem; font-weight:700; margin-bottom:4px; background:var(--grad-main); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .hub-desc  { font-size:.78rem; color:var(--text-muted); margin-bottom:16px; }
+    .theme-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .theme-card { padding:14px 10px; border-radius:12px; cursor:pointer; text-align:center; transition:all .2s; border:2px solid var(--border); background:rgba(255,255,255,.03); }
+    .theme-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.2); }
+    .theme-card.active { border-color:rgba(102,126,234,.5); background:rgba(102,126,234,.1); }
+    .theme-icon { font-size:1.6rem; margin-bottom:6px; }
+    .theme-name { font-size:.74rem; font-weight:700; color:var(--text-dim); }
+    .font-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); gap:14px; }
+    .font-row:last-child { border-bottom:none; }
+    .font-row-label { font-size:.86rem; font-weight:500; }
+    .font-row-desc  { font-size:.72rem; color:var(--text-muted); }
+    .range-row { display:flex; align-items:center; gap:14px; }
+    .range-row input[type="range"] { flex:1; accent-color:var(--purple); }
+    .range-val { font-family:var(--font-mono); font-size:.82rem; min-width:40px; text-align:right; color:var(--purple); }
+    .preview-box { background:rgba(102,126,234,.05); border:1px solid rgba(102,126,234,.15); border-radius:12px; padding:18px; margin-top:14px; }
+    .quick-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    @media(max-width:768px){ .theme-grid { grid-template-columns:repeat(2,1fr); } .quick-grid { grid-template-columns:1fr; } }
+    @media(max-width:480px){ .theme-grid { grid-template-columns:repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+<div class="app-layout" id="app-layout">
+  <div class="main-content">
+    <div class="page-body">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>🎨 Customise</h1>
+          <p>Make StudyAI look and feel exactly how you like it — changes apply instantly</p>
+        </div>
+        <div class="page-header-right">
+          <button class="btn btn-secondary" id="btn-reset-all">↺ Reset All</button>
+          <button class="btn btn-primary" id="btn-save-all">💾 Save Everything</button>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- LEFT COLUMN -->
+        <div>
+
+          <!-- THEMES -->
+          <div class="hub-section">
+            <div class="hub-title">🎨 Theme</div>
+            <div class="hub-desc">Choose your colour palette — 8 complete themes</div>
+            <div class="theme-grid" id="theme-grid"></div>
+          </div>
+
+          <!-- FONTS -->
+          <div class="hub-section">
+            <div class="hub-title">🔤 Typography</div>
+            <div class="hub-desc">Font family, size and line spacing</div>
+
+            <div class="font-row">
+              <div><div class="font-row-label">UI Font</div><div class="font-row-desc">Used everywhere in the app</div></div>
+              <select class="form-input" id="font-family" style="width:160px"></select>
+            </div>
+            <div class="font-row">
+              <div><div class="font-row-label">Editor Font</div><div class="font-row-desc">Used in the note editor only</div></div>
+              <select class="form-input" id="editor-font" style="width:160px"></select>
+            </div>
+            <div class="font-row" style="flex-direction:column;align-items:stretch;gap:8px">
+              <div class="font-row-label">Font Size — <span id="font-size-lbl" style="color:var(--purple)">15px</span></div>
+              <div class="range-row">
+                <span class="text-xs text-muted">12px</span>
+                <input type="range" id="font-size" min="12" max="22" step="1" value="15"/>
+                <span class="text-xs text-muted">22px</span>
+              </div>
+            </div>
+            <div class="font-row" style="flex-direction:column;align-items:stretch;gap:8px">
+              <div class="font-row-label">Line Spacing — <span id="line-height-lbl" style="color:var(--purple)">1.7</span></div>
+              <div class="range-row">
+                <span class="text-xs text-muted">Tight</span>
+                <input type="range" id="line-height" min="1.4" max="2.2" step="0.1" value="1.7"/>
+                <span class="text-xs text-muted">Spacious</span>
+              </div>
+            </div>
+
+            <div class="preview-box">
+              <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:8px">Live Preview</div>
+              <p id="font-preview" style="color:var(--text-dim);line-height:inherit">
+                The quick brown fox jumps over the lazy dog. <strong>StudyAI</strong> helps you learn faster with <em>AI-powered tools</em>.
+              </p>
+            </div>
+          </div>
+
+          <!-- BACKGROUND -->
+          <div class="hub-section">
+            <div class="hub-title">🌌 Background</div>
+            <div class="hub-desc">Animated effects and patterns</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="bg-grid"></div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+
+          <!-- SUBJECT COLORS -->
+          <div class="hub-section">
+            <div class="hub-title">🏷️ Subject Colors</div>
+            <div class="hub-desc">Assign custom colors and icons to your subjects</div>
+            <div id="subj-mini-list" style="max-height:220px;overflow-y:auto"></div>
+            <button class="btn btn-secondary btn-sm mt-3" id="btn-edit-subjects">✏️ Edit All Subjects</button>
+          </div>
+
+          <!-- AI PERSONA -->
+          <div class="hub-section">
+            <div class="hub-title">🤖 AI Persona</div>
+            <div class="hub-desc">How the AI speaks and responds to you</div>
+            <div id="persona-preview" style="padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;margin-bottom:12px">
+              <div id="persona-summary" class="text-sm text-dim"></div>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-edit-persona">🤖 Edit AI Persona</button>
+          </div>
+
+          <!-- FOCUS TIMER -->
+          <div class="hub-section">
+            <div class="hub-title">⏱️ Focus Timer</div>
+            <div class="hub-desc">Pomodoro intervals and daily goals</div>
+            <div id="timer-summary" class="text-sm text-dim mb-3" style="padding:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px"></div>
+            <button class="btn btn-secondary btn-sm" id="btn-edit-timer">⏱️ Edit Timer Settings</button>
+          </div>
+
+          <!-- SIDEBAR + DASHBOARD -->
+          <div class="hub-section">
+            <div class="hub-title">📐 Layout</div>
+            <div class="hub-desc">Sidebar items and dashboard widgets</div>
+            <div class="quick-grid">
+              <button class="btn btn-secondary" id="btn-edit-sidebar" style="justify-content:center;flex-direction:column;gap:4px;padding:14px;border-radius:12px">
+                <span style="font-size:1.3rem">🗂️</span>
+                <span>Sidebar Items</span>
+              </button>
+              <button class="btn btn-secondary" id="btn-edit-dashboard" style="justify-content:center;flex-direction:column;gap:4px;padding:14px;border-radius:12px">
+                <span style="font-size:1.3rem">📊</span>
+                <span>Dashboard Widgets</span>
+              </button>
+              <button class="btn btn-secondary" id="btn-edit-editor" style="justify-content:center;flex-direction:column;gap:4px;padding:14px;border-radius:12px">
+                <span style="font-size:1.3rem">✏️</span>
+                <span>Note Editor</span>
+              </button>
+              <a href="/settings.html" class="btn btn-secondary" style="justify-content:center;flex-direction:column;gap:4px;padding:14px;border-radius:12px;text-decoration:none">
+                <span style="font-size:1.3rem">⚙️</span>
+                <span>All Settings</span>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="assets/js/sanitize.js"></script>
+<script src="assets/js/performance.js"></script>
+<script src="assets/js/themes.js"></script>
+<script src="assets/js/font-controls.js"></script>
+<script src="assets/js/backgrounds.js"></script>
+<script src="assets/js/subjects.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/skeletons.js"></script>
+<script src="assets/js/ai-persona.js"></script>
+<script src="assets/js/timer-customiser.js"></script>
+<script src="assets/js/sidebar-customiser.js"></script>
+<script src="assets/js/dashboard-layout.js"></script>
+<script src="assets/js/editor-prefs.js"></script>
+<script src="assets/js/events.js"></script>
+<script src="assets/js/error-handler.js"></script>
+<script src="assets/js/session.js"></script>
+<script src="assets/js/pwa.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  // ── Themes ──────────────────────────────────────────────
+  const { THEMES, applyTheme, getCurrentThemeId } = ThemeSystem;
+  const themeGrid = document.getElementById('theme-grid');
+  const currentTheme = getCurrentThemeId();
+
+  if (themeGrid) {
+    themeGrid.innerHTML = Object.entries(THEMES).map(([id, t]) => `
+      <div class="theme-card ${id===currentTheme?'active':''}" data-theme="${id}">
+        <div class="theme-icon">${t.icon}</div>
+        <div class="theme-name">${t.name}</div>
+        <div style="font-size:.64rem;color:var(--text-muted);margin-top:2px">${t.desc}</div>
+      </div>`).join('');
+
+    themeGrid.querySelectorAll('.theme-card').forEach(card => {
+      card.addEventListener('click', () => {
+        themeGrid.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        applyTheme(card.dataset.theme);
+      });
+    });
+  }
+
+  // ── Fonts ───────────────────────────────────────────────
+  const { FONT_FAMILIES, load:loadFont, update:updateFont } = FontSystem;
+  const fontPrefs = loadFont();
+
+  // Populate selects
+  ['font-family','editor-font'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = Object.entries(FONT_FAMILIES).map(([k,f]) =>
+      `<option value="${k}" ${(id==='font-family'?fontPrefs.family:fontPrefs.editorFont)===k?'selected':''}>${f.name}</option>`
+    ).join('');
+  });
+
+  // Font size slider
+  const fontSizeInp = document.getElementById('font-size');
+  const fontSizeLbl = document.getElementById('font-size-lbl');
+  if (fontSizeInp) {
+    fontSizeInp.value = fontPrefs.size;
+    fontSizeLbl.textContent = fontPrefs.size + 'px';
+    fontSizeInp.addEventListener('input', e => {
+      fontSizeLbl.textContent = e.target.value + 'px';
+      updateFont({ size: parseInt(e.target.value) });
+    });
+  }
+
+  // Line height slider
+  const lineInp = document.getElementById('line-height');
+  const lineLbl = document.getElementById('line-height-lbl');
+  if (lineInp) {
+    lineInp.value = fontPrefs.lineHeight;
+    lineLbl.textContent = fontPrefs.lineHeight;
+    lineInp.addEventListener('input', e => {
+      lineLbl.textContent = parseFloat(e.target.value).toFixed(1);
+      updateFont({ lineHeight: parseFloat(e.target.value) });
+    });
+  }
+
+  // Font family changes
+  document.getElementById('font-family')?.addEventListener('change', e => updateFont({ family: e.target.value }));
+  document.getElementById('editor-font')?.addEventListener('change', e => updateFont({ editorFont: e.target.value }));
+
+  // ── Backgrounds ─────────────────────────────────────────
+  const { OPTIONS:BG_OPTIONS, load:loadBg, apply:applyBg, save:saveBg } = Backgrounds;
+  const bgGrid = document.getElementById('bg-grid');
+  const currentBg = loadBg();
+  if (bgGrid) {
+    bgGrid.innerHTML = Object.entries(BG_OPTIONS).map(([id, opt]) => `
+      <div class="theme-card ${id===currentBg?'active':''}" data-bg="${id}" style="padding:12px 8px">
+        <div class="theme-icon" style="font-size:1.2rem">${opt.icon}</div>
+        <div class="theme-name" style="font-size:.72rem">${opt.name}</div>
+      </div>`).join('');
+    bgGrid.querySelectorAll('[data-bg]').forEach(card => {
+      card.addEventListener('click', () => {
+        bgGrid.querySelectorAll('[data-bg]').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        applyBg(card.dataset.bg);
+        saveBg(card.dataset.bg);
+        showToast('Background applied!', 'success', 1500);
+      });
+    });
+  }
+
+  // ── Subject colors mini ──────────────────────────────────
+  const { getSubjectStyle } = SubjectColors;
+  const subjList = document.getElementById('subj-mini-list');
+  if (subjList) {
+    const subjects = getSubjects();
+    subjList.innerHTML = subjects.slice(0,8).map(s => {
+      const style = getSubjectStyle(s);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:1.1rem">${style.icon}</span>
+        <span class="text-sm font-bold flex-1">${s}</span>
+        <span style="width:14px;height:14px;border-radius:50%;background:${style.color};display:inline-block"></span>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('btn-edit-subjects')?.addEventListener('click', () => SubjectColors.showModal());
+
+  // ── AI Persona summary ───────────────────────────────────
+  const { PERSONAS, load:loadPersona } = AIPersona;
+  const personaSummary = document.getElementById('persona-summary');
+  const renderPersonaSummary = () => {
+    const p = loadPersona();
+    const per = PERSONAS[p.persona] || PERSONAS.tutor;
+    if (personaSummary) personaSummary.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span style="font-size:1.3rem">${per.icon}</span>
+        <div><div class="font-bold">${per.name}</div><div class="text-xs text-muted">${per.desc}</div></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge badge-purple">${p.verbosity}</span>
+        ${p.useEmojis?'<span class="badge badge-green">emojis on</span>':''}
+        ${p.useBold?'<span class="badge badge-cyan">bold terms</span>':''}
+      </div>`;
+  };
+  renderPersonaSummary();
+  document.getElementById('btn-edit-persona')?.addEventListener('click', () => {
+    AIPersona.showModal();
+    setTimeout(renderPersonaSummary, 3000);
+  });
+
+  // ── Timer summary ────────────────────────────────────────
+  const { load:loadTimer } = TimerCustomiser;
+  const timerSum = document.getElementById('timer-summary');
+  const renderTimerSummary = () => {
+    const t = loadTimer();
+    if (timerSum) timerSum.innerHTML = `
+      Focus <strong>${t.focusMin}min</strong> · Short break <strong>${t.shortBreak}min</strong> · Long break <strong>${t.longBreak}min</strong><br>
+      Daily goal: <strong>${t.dailyGoalMin}min</strong> · ${t.autoStartBreak?'Auto-start breaks on':'Manual starts'}`;
+  };
+  renderTimerSummary();
+  document.getElementById('btn-edit-timer')?.addEventListener('click', () => {
+    TimerCustomiser.showModal();
+    setTimeout(renderTimerSummary, 3000);
+  });
+
+  // ── Layout buttons ───────────────────────────────────────
+  document.getElementById('btn-edit-sidebar')?.addEventListener('click',   () => SidebarCustomiser.showCustomiser());
+  document.getElementById('btn-edit-dashboard')?.addEventListener('click', () => DashboardLayout.showCustomiser());
+  document.getElementById('btn-edit-editor')?.addEventListener('click',    () => EditorPrefs.showPrefsModal());
+
+  // ── Save all ─────────────────────────────────────────────
+  document.getElementById('btn-save-all')?.addEventListener('click', () => {
+    showToast('All customisations saved! ✨', 'success', 3000);
+  });
+
+  // ── Reset all ────────────────────────────────────────────
+  document.getElementById('btn-reset-all')?.addEventListener('click', () => {
+    if (!confirm('Reset ALL customisations to defaults?')) return;
+    ['sa_theme_id','sa_font_prefs','sa_bg_style','sa_sidebar_layout','sa_dash_layout',
+     'sa_editor_prefs','sa_ai_persona','sa_timer_prefs','sa_subject_colors'].forEach(k => localStorage.removeItem(k));
+    showToast('All settings reset to defaults!', 'success', 3000);
+    setTimeout(() => location.reload(), 1500);
+  });
+
+});
+
+initPage('Customise').then(user => { if (!user) return; });
+</script>
+</body>
+</html>
