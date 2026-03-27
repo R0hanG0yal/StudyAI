@@ -439,15 +439,21 @@ app.post('/api/ai/chat', auth, aiLimiter, async (req, res) => {
     memory : 'Help with memorisation. Create mnemonics, memory tricks, and visual associations.',
   };
 
-  const system = `You are StudyAI, an intelligent academic assistant helping students study effectively.
-${modeInstructions[mode] || modeInstructions.general}
+  const system = `You are StudyAI, an intelligent academic assistant.
+Expertise: Science, Mathematics, Physics, Engineering, and General Studies.
+Your Goal: Help students master complex topics with step-by-step logic.
+Special Instructions:
+1. Always parse and explain mathematical variables (x, y, rho, delta, etc.) and physical formulas (F=ma, E=mc^2) accurately.
+2. If text looks like science/math, use LaTeX-style formatting for clarity (e.g. $F=ma$).
+3. Use step-by-step reasoning for problem solving.
+4. Format responses with clean markdown headers and bullet points.
 
-The student's notes context:
+Mode Instructions: ${modeInstructions[mode] || modeInstructions.general}
+
+Student's Notes Context:
 ---
 ${(notesContext || 'No notes provided. Answer generally.').slice(0, MAX_CTX_LEN)}
----
-
-Always answer from the student's notes when relevant. Format responses with markdown where helpful.`;
+---`;
 
   try {
     // ✅ PART 2: Removed duplicate GROQ_API_KEY check (callGroq handles it)
@@ -769,7 +775,7 @@ async function analyzeImageWithGroq(imageBuffer, mimeType, prompt) {
   if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY not configured.');
   const base64Image = imageBuffer.toString('base64');
   const completion = await groq.chat.completions.create({
-    model   : 'meta-llama/llama-4-scout-17b-16e-instruct',
+    model   : 'llama-3.2-11b-vision-preview',
     messages: [{
       role   : 'user',
       content: [
@@ -807,18 +813,21 @@ app.post('/api/upload/smart', auth, upload.single('file'), async (req, res) => {
 
   try {
     if (isImage) {
-      const aiPrompt = `You are an expert at reading images for students.
-1. Extract ALL text visible (handwritten or printed)
-2. Describe any diagrams, charts, or visual elements
-3. Write a brief summary
+      const aiPrompt = `You are a Scientific OCR Expert for StudyAI.
+Goal: Extract ALL information from this educational image with 100% accuracy.
+Instructions:
+1. Extract ALL text (printed or handwritten).
+2. MATHEMATICS/PHYSICS: Pay special attention to variables, subscripts/superscripts (e.g. x^2, v_i), Greek letters (theta, delta, rho), and complex formulas.
+3. DIAGRAMS: Describe any charts, vectors, circuits, or graphs in detail.
+4. If a formula is present, transcribe it clearly.
 
 Format as:
 ---EXTRACTED TEXT---
-[all text]
+[The transcribed text and formulas]
 ---IMAGE DESCRIPTION---
-[visual description]
+[Detailed visual analysis for a student]
 ---SUMMARY---
-[brief summary]`;
+[Academic summary of the core concept]`;
 
       const aiResult    = await analyzeImageWithGroq(buffer, mimetype, aiPrompt);
       const textMatch   = aiResult.match(/---EXTRACTED TEXT---([\s\S]*?)(?:---IMAGE DESCRIPTION---|$)/);
@@ -844,7 +853,10 @@ Format as:
 
       if (isScanned) {
         try {
-          const aiResult = await analyzeImageWithGroq(buffer, 'application/pdf', 'Extract ALL text from this scanned PDF, preserve structure and formatting.');
+          const aiResult = await analyzeImageWithGroq(buffer, 'application/pdf', `You are an Academic PDF OCR Expert. 
+Extract ALL text from this scanned page. 
+Preserve scientific structure: keep exponents, subscripts, Greek variables (phi, lambda, etc.) and formulas (E=hf, p=mv) exactly as shown. 
+Transcribe tables or lists accurately.`);
           const clean = cleanText(aiResult);
           return res.json({ text: clean, title, type: 'scanned-pdf', pages, wordCount: clean.split(/\s+/).filter(Boolean).length, charCount: clean.length, hasImage: true, aiAnalysis: `Extracted from scanned PDF (${pages} pages) using AI vision.` });
         } catch {

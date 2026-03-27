@@ -209,6 +209,7 @@ function _showSolution(solution) {
   // Scroll to solution
   display?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   showToast('Solution ready! ✅', 'success');
+  setTimeout(triggerMathJax, 150);
 }
 
 /* ── Save to notes ── */

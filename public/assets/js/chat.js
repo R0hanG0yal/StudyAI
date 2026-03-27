@@ -220,6 +220,7 @@ async function sendMessage() {
     _renderSessions();
     _renderSuggestions();
     _scrollBottom();
+    setTimeout(triggerMathJax, 100);
 
   } catch (e) {
     _hideTyping();

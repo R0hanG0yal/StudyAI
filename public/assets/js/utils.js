@@ -96,6 +96,16 @@ function mdToHtml(md) {
     .replace(/\n\n/g,'<br/><br/>').replace(/\n/g,'<br/>');
 }
 
+/**
+ * Re-triggers MathJax to render all formulas on the page.
+ * Call this after updating dynamic content (chat messages, notes).
+ */
+function triggerMathJax() {
+  if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+    window.MathJax.typesetPromise().catch((err) => console.warn('MathJax Error:', err));
+  }
+}
+
 /* ════════════════════════════════════════════════════════════
    MODAL
    ════════════════════════════════════════════════════════════ */
