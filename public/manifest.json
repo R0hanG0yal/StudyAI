@@ -12,16 +12,28 @@
   "categories": ["education", "productivity"],
   "icons": [
     {
-      "src": "/assets/icons/studyai-v2-192.png",
+      "src": "assets/icons/studyai-v2-192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/assets/icons/studyai-v2-512.png",
+      "src": "assets/icons/studyai-v2-512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/studyai-v2-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icons/studyai-v2-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
@@ -30,21 +42,21 @@
       "short_name": "Notes",
       "description": "Open your study notes",
       "url": "/notes.html",
-      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "assets/icons/studyai-v2-192.png", "sizes": "192x192" }]
     },
     {
       "name": "AI Chat",
       "short_name": "Chat",
       "description": "Chat with AI about your notes",
       "url": "/chat.html",
-      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "assets/icons/studyai-v2-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Quiz Zone",
       "short_name": "Quiz",
       "description": "Take an AI quiz",
       "url": "/quiz.html",
-      "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "assets/icons/studyai-v2-192.png", "sizes": "192x192" }]
     }
   ]
 }
